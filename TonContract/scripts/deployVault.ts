@@ -1,60 +1,68 @@
 import { Cell, toNano } from '@ton/core';
 import { compile, NetworkProvider } from '@ton/blueprint';
 import { Vault } from '../wrappers/Vault';
-import { jettonContentToCell, onchainContentToCell } from '../utils/JettonHelpers';
+import { onchainContentToCell } from '../utils/JettonHelpers';
 
-// 1. Jettonコンテンツ関連の関数
+// Jetton content related function
 async function getJettonContent(ui: any): Promise<Cell> {
-    const typeInput = await ui.choose('Select Jetton content type.', ['Onchain', 'Offchain'], (v: string) => v);
+    // Select setup type
+    const setupType = await ui.choose('Select setup type.', ['Detailed', 'Simple'], (v: string) => v);
     
-    if (typeInput === 'Onchain') {
-        // 個別に入力を受け付ける
-        const name = await ui.input('Input Jetton name: ');
-        const symbol = await ui.input('Input Jetton symbol: ');
-        const description = await ui.input('Input Jetton description: ');
-        const image = await ui.input('Input Jetton image URL: ');
-        let decimals = await ui.input('Input Jetton decimals (default: 9): ');
+    let name: string, symbol: string, description: string, image: string, decimals: string;
+    
+    if (setupType === 'Detailed') {
+        // Detailed setup
+        name = await ui.input('Input Jetton name: ');
+        symbol = await ui.input('Input Jetton symbol: ');
+        description = await ui.input('Input Jetton description: ');
+        image = await ui.input('Input Jetton image URL: ');
+        decimals = await ui.input('Input Jetton decimals (default: 9): ');
         if (decimals === '') {
             decimals = '9';
         }
-        return onchainContentToCell({
-            name,
-            symbol,
-            description,
-            image,
-            decimals,
-        });
     } else {
-        const uri = await ui.input('Input Jetton content URI: ');
-        return jettonContentToCell(uri);
+        // Simple setup
+        name = await ui.input('Input Jetton name: ');
+        symbol = name;
+        description = name;
+        image = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrViWg0D72Yqmv2P4r2vO7arNp_IoIofGKyw&s';
+        decimals = '9';
     }
+    
+    return onchainContentToCell({
+        name,
+        symbol,
+        description,
+        image,
+        decimals,
+    });
 }
 
-// 3. メイン処理
+// Main process
 export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
 
-    // Jettonコンテンツの設定
+    // Jetton content setup
     const content = await getJettonContent(ui);
 
-    // ネットワーク情報の取得
+    // Get network information
     const network = provider.network();
     const isMainnet = network !== 'testnet';
     
-    // Vault設定の全体像を表示
+    // Display complete Vault configuration
     const vaultConfig = {
         adminAddress: provider.sender()?.address!,
         content,
         walletCode: await compile('JettonWallet'),
-        // 新しいストレージ構造に対応するための空の辞書を追加
-        queryInfoDict: undefined, // 初期デプロイ時は空のqueryInfoDictを使用
+        // Add empty dictionary for new storage structure
+        queryInfoDict: undefined, // Use empty queryInfoDict for initial deployment
     };
     
-    console.log('\nVault設定の全体像:');
+    console.log('\nComplete Vault configuration:');
     console.log('--------------------');
-    console.log(`管理者アドレス: ${vaultConfig.adminAddress.toString()}`);
+    console.log(`Admin address: ${vaultConfig.adminAddress.toString()}`);
     
-    // 3.4 Vaultのデプロイ
+    // Deploy Vault
     const vault = provider.open(
         Vault.createFromConfig(
             vaultConfig,
