@@ -16,12 +16,20 @@ export async function run(provider: NetworkProvider) {
     console.log('\nCurrent Vault Data:');
     console.log('-----------------');
     console.log(`Stopped: ${vaultData.stopped}`);
-    console.log(`Jetton Master: ${vaultData.jettonMaster?.toString() || 'Not set'}`);
-    console.log(`Jetton Wallet: ${vaultData.jettonWallet?.toString() || 'Not set'}`);
+    console.log(`Jetton Master: ${vaultData.jettonMaster?.toString()}`);
+    console.log(`Jetton Wallet: ${vaultData.jettonWallet?.toString()}`);
     console.log('-----------------');
 
-    // Confirm with user
-    const confirm = await ui.input('Do you want to set stopped to false? (y/n): ');
+    // 変更予定の内容を表示
+    console.log('\nChanges to be made:');
+    console.log('-----------------');
+    console.log('Stopped: true -> false');
+    console.log(`Jetton Master: ${vaultData.jettonMaster?.toString()}`);
+    console.log(`Jetton Wallet: ${vaultData.jettonWallet?.toString()}`);
+    console.log('-----------------');
+
+    // ユーザーに確認
+    const confirm = await ui.input('Do you want to apply these changes? (y/n): ');
     if (confirm.toLowerCase() !== 'y') {
         console.log('Operation cancelled');
         return;
@@ -39,8 +47,8 @@ export async function run(provider: NetworkProvider) {
             value: toNano('0.05')
         };
         await vault.sendChangeVaultData(provider.sender(), params);
-
-        console.log('\nTransaction sent successfully!');
+        
+        console.log('\nTransaction completed successfully!');
     } catch (error) {
         console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
     }
