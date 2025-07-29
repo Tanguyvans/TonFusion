@@ -81,7 +81,7 @@ export function vaultConfigToCell(config: VaultConfig, isMainnet: boolean = fals
     // Build cell according to storage layout
     return beginCell()
         .storeRef(jettonData)
-        .storeBit(0) // stopped: false
+        .storeBit(true) // stopped: true
         .storeAddress(config.jettonMaster || config.adminAddress) // Default to admin address if not specified
         .storeAddress(config.jettonWallet || config.adminAddress) // Default to admin address if not specified
         .storeDict(swapsInfoDict)

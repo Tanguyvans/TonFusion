@@ -55,6 +55,8 @@
     if (op == op::change_vault_data()) {
         throw_unless(er::not_admin(), equal_slices(sender_address, storage::admin_address));
         storage::stopped = in_msg_body~load_bool();
+        storage::jetton_master = in_msg_body~load_msg_addr();
+        storage::jetton_wallet = in_msg_body~load_msg_addr();
         storage::dict_swaps_info = in_msg_body~load_dict();
         save_storage();
         return ();
@@ -141,10 +143,12 @@ slice get_wallet_address(slice admin_address) method_id {
     );
 }
 
-(int, cell) get_vault_data() method_id {
+(int, slice, slice, cell) get_vault_data() method_id {
     load_storage();
     return (
         storage::stopped,
+        storage::jetton_master,
+        storage::jetton_wallet,
         storage::dict_swaps_info
     );
 }
