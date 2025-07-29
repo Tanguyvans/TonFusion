@@ -8,6 +8,7 @@ import {
     Dictionary,
     Sender,
     SendMode,
+    toNano,
 } from '@ton/core';
 
 export interface SwapsInfo {
@@ -124,7 +125,15 @@ export class Vault implements Contract {
         const stopped = result.stack.readNumber();
         const jettonMaster = result.stack.readAddress();
         const jettonWallet = result.stack.readAddress();
-        const dictSwapsInfo = result.stack.readCell();
+        
+        // Handle the case where dict_swaps_info might be null
+        let dictSwapsInfo = null;
+        try {
+            dictSwapsInfo = result.stack.readCell();
+        } catch (e) {
+            // If reading cell fails, keep it as null
+            console.log('dict_swaps_info is null');
+        }
         
         return {
             stopped: stopped !== 0,
@@ -173,6 +182,39 @@ export class Vault implements Contract {
     async getJettonWallet(provider: ContractProvider): Promise<Address> {
         const res = await this.getVaultData(provider);
         return res.jettonWallet;
+    }
+
+    /**
+     * Change vault data (admin only)
+     * @param provider Contract provider
+     * @param via Sender address
+     * @param params Parameters for changing vault data
+     */
+    async sendChangeVaultData(
+        provider: ContractProvider,
+        via: Sender,
+        params: {
+            stopped: boolean;
+            jettonMaster: Address | null;
+            jettonWallet: Address | null;
+            value?: bigint; //Amount of TON to send with the transaction
+        }
+    ) {
+        const { stopped, jettonMaster, jettonWallet, value = toNano('0.05') } = params;
+        
+        const messageBody = beginCell()
+            .storeUint(0xf1b32984, 32) // op::change_vault_data()
+            .storeBit(stopped)
+            .storeAddress(jettonMaster)
+            .storeAddress(jettonWallet)
+            .storeDict(null) // dict_swaps_info - pass null to keep existing
+            .endCell();
+
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: messageBody,
+        });
     }
     
     /**
