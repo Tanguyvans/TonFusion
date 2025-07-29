@@ -42,6 +42,8 @@ export interface VaultConfig {
     walletCode: Cell;
     dictSwapsInfo?: Dictionary<bigint, SwapsInfo>;
     totalSupply?: bigint;
+    jettonMaster?: Address;
+    jettonWallet?: Address;
 };
 
 export function vaultConfigToCell(config: VaultConfig, isMainnet: boolean = false): Cell {
@@ -69,18 +71,19 @@ export function vaultConfigToCell(config: VaultConfig, isMainnet: boolean = fals
         });
         
     }
+    const jettonData = beginCell()
+        .storeCoins(config.totalSupply || 0n)
+        .storeAddress(config.adminAddress)
+        .storeRef(config.content)
+        .storeRef(config.walletCode)
+        .endCell();
     
     // Build cell according to storage layout
     return beginCell()
-        .storeRef(
-            beginCell()
-                .storeCoins(config.totalSupply || 0n)
-                .storeAddress(config.adminAddress)
-                .storeRef(config.content)
-                .storeRef(config.walletCode)
-                .endCell()
-        )
+        .storeRef(jettonData)
         .storeBit(0) // stopped: false
+        .storeAddress(config.jettonMaster || config.adminAddress) // Default to admin address if not specified
+        .storeAddress(config.jettonWallet || config.adminAddress) // Default to admin address if not specified
         .storeDict(swapsInfoDict)
         .endCell();
 }
@@ -119,10 +122,14 @@ export class Vault implements Contract {
     async getVaultData(provider: ContractProvider) {
         const result = await provider.get('get_vault_data', []);
         const stopped = result.stack.readNumber();
+        const jettonMaster = result.stack.readAddress();
+        const jettonWallet = result.stack.readAddress();
         const dictSwapsInfo = result.stack.readCell();
         
         return {
             stopped: stopped !== 0,
+            jettonMaster,
+            jettonWallet,
             dictSwapsInfo
         };
     }
@@ -156,6 +163,16 @@ export class Vault implements Contract {
     async getContent(provider: ContractProvider) {
         const res = await this.getJettonData(provider);
         return res.content;
+    }
+
+    async getJettonMaster(provider: ContractProvider): Promise<Address> {
+        const res = await this.getVaultData(provider);
+        return res.jettonMaster;
+    }
+
+    async getJettonWallet(provider: ContractProvider): Promise<Address> {
+        const res = await this.getVaultData(provider);
+        return res.jettonWallet;
     }
     
     /**

@@ -1,10 +1,10 @@
-import { Cell, toNano } from '@ton/core';
+import { Cell, toNano, Address } from '@ton/core';
 import { compile, NetworkProvider } from '@ton/blueprint';
 import { Vault } from '../wrappers/Vault';
 import { onchainContentToCell } from '../utils/JettonHelpers';
 
 // Jetton content related function
-async function getJettonContent(ui: any): Promise<Cell> {
+async function getJettonContent(ui: any): Promise<{ content: Cell, setupType: string }> {
     // Select setup type
     const setupType = await ui.choose('Select setup type.', ['Detailed', 'Simple'], (v: string) => v);
     
@@ -29,21 +29,29 @@ async function getJettonContent(ui: any): Promise<Cell> {
         decimals = '9';
     }
     
-    return onchainContentToCell({
-        name,
-        symbol,
-        description,
-        image,
-        decimals,
-    });
+    return {
+        content: onchainContentToCell({
+            name,
+            symbol,
+            description,
+            image,
+            decimals,
+        }),
+        setupType
+    };
 }
+
+// Constants
+const PLACEHOLDER_WALLET = 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
+const TESTNET_USD_MASTER = 'kQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPsyy';
 
 // Main process
 export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
 
-    // Jetton content setup
-    const content = await getJettonContent(ui);
+    // Get jetton content and setup type
+    const { content, setupType } = await getJettonContent(ui);
+    const isSimpleSetup = setupType === 'Simple';
 
     // Get network information
     const network = provider.network();
@@ -55,6 +63,8 @@ export async function run(provider: NetworkProvider) {
         content,
         walletCode: await compile('JettonWallet'),
         dictSwapsInfo: undefined,
+        jettonWallet: Address.parse(PLACEHOLDER_WALLET),
+        jettonMaster: isSimpleSetup ? Address.parse(TESTNET_USD_MASTER) : undefined,
     };
     
     console.log('\nComplete Vault configuration:');
