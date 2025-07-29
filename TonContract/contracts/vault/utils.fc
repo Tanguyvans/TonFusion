@@ -1,36 +1,35 @@
-;; 空のアドレスを返す関数
+;; Function to return an empty address
 slice addr_none() asm "b{00} PUSHSLICE";
 
-;; ========== ガス定数 ==========
-;; --- 基本処理系 ---
-;; 基本的なデータ処理のガス消費量（0.005 TON）
+;; ========== Gas Constants ==========
+;; --- Basic Processing ---
+;; Gas consumption for basic data processing (0.005 TON)
 int gas_basic_processing_consumption() asm "5000000 PUSHINT";
-;; コントラクトアドレス提供時のガス消費量（0.01 TON）
+;; Gas consumption for providing contract address (0.01 TON)
 int provide_address_gas_consumption() asm "10000000 PUSHINT";
 
-;; --- ストレージ操作系 ---
-;; ストレージ読み込みのガス消費量（0.005 TON）
+;; --- Storage Operations ---
+;; Gas consumption for loading storage (0.005 TON)
 int gas_storage_load_consumption() asm "5000000 PUSHINT";
-;; ストレージ保存のガス消費量（0.005 TON）
+;; Gas consumption for saving storage (0.005 TON)
 int gas_storage_save_consumption() asm "5000000 PUSHINT";
-;; 辞書更新のガス消費量（0.005 TON）
+;; Gas consumption for updating dictionary (0.005 TON)
 int gas_dict_update_consumption() asm "5000000 PUSHINT";
 
-;; --- 超過ガス・Excess系 ---
-;; 超過ガス返還用のガス消費量（0.005 TON）
+;; --- Excess Gas ---
+;; Gas consumption for returning excess gas (0.005 TON)
 int gas_excess_return_consumption() asm "5000000 PUSHINT";
-;; 最小超過額の閾値（0.001 TON）
+;; Minimum excess threshold (0.001 TON)
 int min_excess_threshold() asm "1000000 PUSHINT";
 
-;; --- Jetton・ミント系 ---
-;; Jetton転送メッセージのガス消費量（0.05 TON）
+;; --- Jetton :: Minting ---
+;; Gas consumption for jetton transfer message (0.05 TON)
 int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 
 
 
-;; swaps dictを更新する関数
+;; Function to update swaps dict
 () update_swaps_info(int swap_id, slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) impure {
-    ;; udict_set_builder を使用して一行で処理
     storage::dict_swaps_info~udict_set_builder(
         64,
         swap_id,
@@ -43,18 +42,17 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
     );
 }
 
-;; swaps dictから情報を読み込む関数
+;; Function to load swaps info from dict
 (slice, int, int, int, int) load_swaps_info(int swap_id) impure {
     (slice swap_data, int found) = storage::dict_swaps_info.udict_get?(64, swap_id);
     if (found) {
-        ;; 参照がある場合は、参照先のセルからデータを読み込む
         int refs = swap_data.slice_refs();
         if (refs > 0) {
             cell ref_cell = swap_data~load_ref();
             swap_data = ref_cell.begin_parse();
         }
         
-        ;; アドレスをスライスとして読み込み、金額もVarUIntegerとして読み込み
+        ;; Load user address, amount, received excesses, excess gas, and timestamp
         slice user_address = swap_data~load_msg_addr();
         int index_amount = swap_data~load_coins();
         int received_excesses = swap_data~load_uint(8);

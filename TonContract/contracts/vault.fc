@@ -30,22 +30,22 @@
     load_storage();
 
     if (op == op::register_deposit()) {
-        ;; コントラクトが停止中かチェック
+        ;; Check if the contract is stopped
         throw_unless(er::vault_is_stopped(), storage::stopped != -1);
         
-        ;; ユーザーアドレスを取得
+        ;; Get user address
         slice user_address = in_msg_body~load_msg_addr();
         
-        ;; ガス計算 - register_depositオペレーション自体のみ
+        ;; Calculate gas - register_deposit operation only
         int required_gas = gas_basic_processing_consumption() + ;;（0.005 TON）
                          gas_storage_load_consumption() + ;;（0.005 TON）
                          gas_dict_update_consumption() + ;;（0.005 TON）
-                         gas_storage_save_consumption(); ;;（0.005 TON）合計: 0.02 TON
+                         gas_storage_save_consumption(); ;;（0.005 TON）: Total: 0.02 TON
         
-        ;; 必要なガス量を確保
+        ;; Check if the required gas is available
         throw_unless(er::insufficient_gas(), msg_value >= required_gas);
     
-        ;; SwapsInfoIDに紐づく情報を登録
+        ;; Register SwapsInfoID
         update_swaps_info(swap_id, user_address, 0, 0, 0, now());
         
         save_storage();
@@ -149,7 +149,7 @@ slice get_wallet_address(slice admin_address) method_id {
     );
 }
 
-;; SwapsInfoIDの詳細情報を取得するデバッグ用getter
+;; Debug getter to retrieve SwapsInfoID details
 (int, slice, int, int, int, int) get_swaps_info_debug(int swap_id) method_id {
     load_storage();
     (slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) = load_swaps_info(swap_id);

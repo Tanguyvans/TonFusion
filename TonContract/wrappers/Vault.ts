@@ -19,18 +19,18 @@ export interface SwapsInfo {
 }
 export const SwapsInfoValue = {
     serialize: (src: SwapsInfo, builder: any) => {
-        builder.storeAddress(src.userAddress);  // アドレスとして保存
-        builder.storeCoins(src.indexAmount);    // VarUIntegerとして保存
+        builder.storeAddress(src.userAddress);  // Address
+        builder.storeCoins(src.indexAmount);    // VarUInteger
         builder.storeUint(src.receivedExcesses, 8);
-        builder.storeCoins(src.excessGas);      // VarUIntegerとして保存
+        builder.storeCoins(src.excessGas);      // VarUInteger
         builder.storeUint(src.timestamp, 32);
     },
     parse: (slice: any): SwapsInfo => {
-        const userAddress = slice.loadAddress();  // アドレスとして読み込み   
-        const indexAmount = slice.loadCoins();    // VarUIntegerとして読み込み
+        const userAddress = slice.loadAddress();  // Address
+        const indexAmount = slice.loadCoins();    // VarUInteger
         const receivedExcessesRaw = slice.loadUint(8);
         const receivedExcesses = Number(receivedExcessesRaw); 
-        const excessGas = slice.loadCoins();      // VarUIntegerとして読み込み
+        const excessGas = slice.loadCoins();      // VarUInteger
         const timestamp = slice.loadUint(32); 
         return { userAddress, indexAmount, receivedExcesses, excessGas, timestamp };
     }
@@ -45,21 +45,21 @@ export interface VaultConfig {
 };
 
 export function vaultConfigToCell(config: VaultConfig, isMainnet: boolean = false): Cell {
-    // スワップIDに紐づく情報辞書
+    // SwapsInfo dictionary
     let swapsInfoDict = config.dictSwapsInfo || Dictionary.empty(
         Dictionary.Keys.BigUint(64),
         SwapsInfoValue
     );
     
-    // サンプルデータが必要な場合（デバッグ用）
+    // Sample data is required for debugging
     if (Object.keys(swapsInfoDict).length === 0) {
-        // ネットワークに応じてアドレスを切り替え
+        // Switch address based on network
         const sampleAddress = isMainnet 
             ? 'UQAwUvvYnPpImBfrKl3-KRYh05aNrUKTGgcarTB_yzhAtwpk'
             : 'EQB-re93kxeCoDDQ66RUZuG382uIAg3bhiFCzrlaeBTN6n1e';
             
         const userAddress1 = Address.parse(sampleAddress);
-        // 新しいクエリIDで登録（デバッグ用）
+        // Register new query ID (for debugging)
         swapsInfoDict.set(54321n, {
             userAddress: userAddress1,
             indexAmount: 1000000000n,
@@ -70,7 +70,7 @@ export function vaultConfigToCell(config: VaultConfig, isMainnet: boolean = fals
         
     }
     
-    // ストレージレイアウトに従ってセルを構築
+    // Build cell according to storage layout
     return beginCell()
         .storeRef(
             beginCell()
@@ -159,9 +159,9 @@ export class Vault implements Contract {
     }
     
     /**
-     * SwapsIDに紐づく情報を取得する
-     * @param provider コントラクトプロバイダー
-     * @returns SwapsIDとユーザー情報のマップ
+     * SwapsInfo map
+     * @param provider Contract provider
+     * @returns SwapsInfo map
      */
     async getSwapsInfo(provider: ContractProvider): Promise<Map<bigint, { userAddress: Address, indexAmount: bigint, receivedExcesses: number, excessGas: bigint, timestamp: bigint }>> {
         try {
@@ -173,23 +173,23 @@ export class Vault implements Contract {
                 return new Map();
             }
             
-            // 新方式のSwapsInfoValueで辞書をロード
+            // Load dictionary using SwapsInfoValue
             const swapsInfoDict = Dictionary.loadDirect(
                 Dictionary.Keys.BigUint(64),
                 SwapsInfoValue,
                 swapsInfoCell
             );
             
-            // 結果をマップとして返す
+            // Result map
             const resultMap = new Map<bigint, { userAddress: Address, indexAmount: bigint, receivedExcesses: number, excessGas: bigint, timestamp: bigint }>();
             
-            // 辞書の各エントリを処理
+            // Process each entry in the dictionary
             for (const [swapId, info] of swapsInfoDict) {
                 try {
-                    // 新しいSwapsInfo型ではアドレスが直接利用可能
+                    // Address is directly available in the new SwapsInfo type
                     const userAddress = info.userAddress;
                     
-                    // 結果マップに追加
+                    // Add to result map
                     resultMap.set(swapId, {
                         userAddress,
                         indexAmount: info.indexAmount,
@@ -198,7 +198,7 @@ export class Vault implements Contract {
                         timestamp: info.timestamp
                     });
                 } catch (e) {
-                    console.log('SwapsID情報の解析エラー。この項目はスキップします。', e);
+                    console.log('SwapsID information parsing error. Skipping this item.', e);
                 }
             }
             

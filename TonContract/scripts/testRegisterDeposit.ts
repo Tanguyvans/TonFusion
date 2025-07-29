@@ -6,86 +6,86 @@ import { Op } from '../utils/Constants';
 export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
     
-    console.log('\nVault Register Deposit テストツール');
+    console.log('\nVault Register Deposit Test Tool');
     console.log('-------------------------------');
     
-    // Vaultアドレスの入力
-    const vaultAddr = await ui.inputAddress('テスト対象のVaultアドレス: ');
+    // Vault address input
+    const vaultAddr = await ui.inputAddress('Vault address: ');
     const vault = provider.open(Vault.createFromAddress(vaultAddr));
     
-    // SwapsIDの手動入力
-    const input = await ui.input('SwapsIDを入力してください（10進数）: ');
+    // SwapsID input
+    const input = await ui.input('SwapsID to input (decimal): ');
     const swapsId = BigInt(input);
     console.log(`SwapsID: ${swapsId}`);
-    console.log(`SwapsID（16進数）: 0x${swapsId.toString(16)}`);
+    console.log(`SwapsID (hex): 0x${swapsId.toString(16)}`);
     
-    // ユーザーアドレスの設定（常にデフォルトを使用）
+    // User address input
     let userAddr: Address;
     const senderAddr = provider.sender().address;
     if (senderAddr) {
         userAddr = senderAddr;
-        console.log(`ユーザーアドレス: ${userAddr.toString()}`);
+        console.log(`User address: ${userAddr.toString()}`);
     } else {
-        throw new Error('送信者のアドレスが取得できませんでした');
+        throw new Error('Failed to get sender address');
     }
 
-    // インデックストークン量もデフォルトで1 INDEX
+    // Index token amount input
     const indexAmount = toNano('1'); // 1.0 INDEX = 1,000,000,000 nanoINDEX
-    console.log(`インデックストークン量: ${indexAmount} nanoINDEX (${Number(indexAmount) / 1e9} INDEX)`);
+    console.log(`Index token amount: ${indexAmount} nanoINDEX (${Number(indexAmount) / 1e9} INDEX)`);
 
-    // ガス量もデフォルトで0.10 TON
+    // Gas amount input
     const gasAmount = toNano('0.10'); // 0.1 TON = 100,000,000 nanoTON
-    console.log(`ガス量: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
+    console.log(`Gas amount: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
     
-    // メッセージの構築
+    // Message construction
     const message = beginCell()
-        .storeUint(Op.register_deposit, 32) // 正しいopコード: register_deposit
-        .storeUint(swapsId, 64) // swaps_id
-        .storeAddress(userAddr) // user_address
-        .storeCoins(indexAmount) // index_amount
+        .storeUint(Op.register_deposit, 32) 
+        .storeUint(swapsId, 64) 
+        .storeAddress(userAddr) 
+        .storeCoins(indexAmount) 
         .endCell();
     
-    console.log('\n送信するメッセージの詳細:');
-    console.log(`オペコード: 0x${Op.register_deposit.toString(16)} (register_deposit)`);
+    console.log('\nMessage details to send:');
+    console.log(`Op code: 0x${Op.register_deposit.toString(16)} (register_deposit)`);
     console.log(`SwapsID: ${swapsId}`);
-    console.log(`ユーザーアドレス: ${userAddr.toString()}`);
-    console.log(`インデックストークン量: ${indexAmount} nanoINDEX (${Number(indexAmount) / 1e9} INDEX)`);
-    console.log(`ガス量: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
+    console.log(`User address: ${userAddr.toString()}`);
+    console.log(`Index token amount: ${indexAmount} nanoINDEX (${Number(indexAmount) / 1e9} INDEX)`);
+    console.log(`Gas amount: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
     
-    // 確認
+    // Confirmation
     const confirm = await ui.choose(
-        '\nメッセージを送信しますか？',
-        ['はい', 'いいえ'],
+        '\nSend message?',
+        ['Yes', 'No'],
         (v) => v
     );
     
-    if (confirm === 'いいえ') {
-        console.log('操作がキャンセルされました');
+    if (confirm === 'No') {
+        console.log('Operation cancelled');
         return;
     }
     
-    // メッセージの送信
+    // Message sending
     try {
-        console.log('\nメッセージを送信中...');
+        console.log('\nSending message...');
         
-        // 内部メッセージとして送信
+        // Internal message sending
         await provider.sender().send({
             to: vaultAddr,
             value: gasAmount,
             body: message
         });
         
-        console.log('メッセージが正常に送信されました！');
-        console.log('Tonviewerでトランザクションを確認できます');
-        console.log('\n送信後の確認方法:');
-        console.log(`1. Tonviewerで以下の関数を実行: get_swaps_info_debug(${swapsId})`);
-        console.log('2. 結果が以下のようになっていれば成功:');
-        console.log('   - 1番目の値が-1（データが存在する）');
-        console.log(`   - 2番目の値が${indexAmount}（インデックストークン量）`);
-        console.log('   - 3番目の値が0（受信回数）');
-        console.log('   - 4番目の値がガス超過額（送信したガス量から使用分(0.02 TON)を引いた値）');
-        console.log('   - 5番目の値が現在のタイムスタンプ');
+        console.log('Message sent successfully!');
+        console.log('You can confirm the transaction on Tonviewer');
+        console.log('\nConfirmation method after sending:');
+        console.log(`1. Tonviewer: get_swaps_info_debug(${swapsId})`);
+        console.log('2. The result should be as follows:');
+        console.log('   - The first value is -1 (data exists)');
+        console.log(`   - The second value is ${indexAmount} (index token amount)`);
+        console.log('   - The third value is 0 (number of received deposits)');
+        console.log('   - The fourth value is the gas excess (gas sent minus used gas)');
+        console.log('   - The fifth value is the current timestamp');
     } catch (error) {
-        console.error('メッセージ送信中にエラーが発生しました:', error instanceof Error ? error.message : String(error));
+        console.error('Error sending message:', error instanceof Error ? error.message : String(error));
     }
 }
