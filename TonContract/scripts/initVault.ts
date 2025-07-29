@@ -26,7 +26,7 @@ export async function run(provider: NetworkProvider) {
     const tonClient = getTonClient(provider.network() === 'custom' ? 'mainnet' : 'testnet');
     const calculatedJettonWallet = await tonClient.open(JettonMaster.create(vaultData.jettonMaster!)).getWalletAddress(address);
 
-    // 変更予定の内容を表示
+    // Show changes to be made
     console.log('\nChanges to be made:');
     console.log('-----------------');
     console.log('Stopped: false');
