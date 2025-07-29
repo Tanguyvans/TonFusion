@@ -1,0 +1,113 @@
+;; 空のアドレスを返す関数
+slice addr_none() asm "b{00} PUSHSLICE";
+
+;; ========== ガス定数 ==========
+;; 全てのガス定数を用途ごとに整理
+
+;; --- 基本処理系 ---
+;; 基本的なデータ処理のガス消費量（0.005 TON）
+int gas_basic_processing_consumption() asm "5000000 PUSHINT";
+;; コントラクトアドレス提供時のガス消費量（0.01 TON）
+int provide_address_gas_consumption() asm "10000000 PUSHINT";
+
+;; --- ストレージ操作系 ---
+;; ストレージ読み込みのガス消費量（0.005 TON）
+int gas_storage_load_consumption() asm "5000000 PUSHINT";
+;; ストレージ保存のガス消費量（0.005 TON）
+int gas_storage_save_consumption() asm "5000000 PUSHINT";
+;; 辞書更新のガス消費量（0.005 TON）
+int gas_dict_update_consumption() asm "5000000 PUSHINT";
+
+;; --- 超過ガス・Excess系 ---
+;; 超過ガス返還用のガス消費量（0.005 TON）
+int gas_excess_return_consumption() asm "5000000 PUSHINT";
+;; 最小超過額の閾値（0.001 TON）
+int min_excess_threshold() asm "1000000 PUSHINT";
+
+;; --- Jetton・ミント系 ---
+;; Jetton転送メッセージのガス消費量（0.05 TON）
+int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
+
+
+
+;; クエリーID情報を更新する関数（新形式、アドレスをスライスとして保存）
+() update_query_info(int query_id, slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) impure {
+    ;; udict_set_builder を使用して一行で処理
+    storage::dict_query_info~udict_set_builder(
+        64,
+        query_id,
+        begin_cell()
+            .store_slice(user_address)
+            .store_coins(index_amount)
+            .store_uint(received_excesses, 8)
+            .store_coins(excess_gas)
+            .store_uint(timestamp, 32)
+    );
+}
+
+;; クエリーID情報を読み込む関数（新形式、アドレスをスライスとして読み込み）
+(slice, int, int, int, int) load_query_info(int query_id) impure {
+    (slice query_data, int found) = storage::dict_query_info.udict_get?(64, query_id);
+    if (found) {
+        ;; 参照がある場合は、参照先のセルからデータを読み込む
+        int refs = query_data.slice_refs();
+        if (refs > 0) {
+            cell ref_cell = query_data~load_ref();
+            query_data = ref_cell.begin_parse();
+        }
+        
+        ;; アドレスをスライスとして読み込み、金額もVarUIntegerとして読み込み
+        slice user_address = query_data~load_msg_addr();
+        int index_amount = query_data~load_coins();
+        int received_excesses = query_data~load_uint(8);
+        int excess_gas = query_data~load_coins();
+        int timestamp = query_data~load_uint(32);
+        return (user_address, index_amount, received_excesses, excess_gas, timestamp);
+    }
+    return (null(), 0, 0, 0, 0);
+}
+
+
+
+;; ユーザークエリー情報を保存する関数
+cell store_user_query_data(slice user_address, int expected_tokens) inline {
+    return begin_cell()
+        .store_slice(user_address)
+        .store_uint(expected_tokens, 8) ;; 期待するトークン数（最大8ビット）
+        .end_cell();
+}
+
+;; ユーザークエリー情報を読み込む関数
+(slice, int) load_user_query_data(cell query_cell) inline {
+    slice query_slice = query_cell.begin_parse();
+    slice user_address = query_slice~load_msg_addr();
+    int expected_tokens = query_slice~load_uint(8);
+    return (user_address, expected_tokens);
+}
+
+() send_jetton(
+    int query_id,
+    slice jetton_wallet_address,
+    int gas,
+    int jetton_amount,
+    slice to_address
+) impure {
+    cell body = begin_cell()
+        .store_uint(op::transfer(), 32)
+        .store_uint(query_id, 64)
+        .store_coins(jetton_amount)
+        .store_slice(to_address)
+        .store_slice(to_address)
+        .store_uint(0, 1)
+        .store_coins(0)
+        .store_uint(0, 1)
+        .end_cell();
+    cell msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(jetton_wallet_address)
+        .store_coins(gas)
+        .store_uint(1, 107)
+        .store_ref(body)
+        .end_cell();
+    send_raw_message(msg, 0);
+}
