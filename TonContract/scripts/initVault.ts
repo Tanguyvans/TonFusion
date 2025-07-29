@@ -1,6 +1,6 @@
 import { NetworkProvider } from '@ton/blueprint';
-import { Address, toNano, beginCell } from '@ton/core';
-import { Vault } from '../wrappers/Vault';
+import { Address, Dictionary, toNano } from '@ton/core';
+import { Vault, SwapsInfo } from '../wrappers/Vault';
 
 export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
@@ -27,20 +27,18 @@ export async function run(provider: NetworkProvider) {
         return;
     }
 
-    // Send the transaction
+    // Send the transaction using the Vault wrapper's method
     try {
-        await provider.sender().send({
-            to: address,
-            value: toNano('0.05'),
-            sendMode: 1,
-            body: beginCell()
-                .storeUint(0xf1b32984, 32) // op::change_vault_data()
-                .storeBit(false) // stopped = false
-                .storeAddress(vaultData.jettonMaster) // jetton_master (keep current)
-                .storeAddress(vaultData.jettonWallet) // jetton_wallet (keep current)
-                .storeDict(null) // dict_swaps_info (keep current)
-                .endCell()
-        });
+        // Create an empty dictionary for dict_swaps_info if it's null
+        const emptyDict = Dictionary.empty<bigint, SwapsInfo>();
+        const params = {
+            stopped: false,
+            jettonMaster: vaultData.jettonMaster,
+            jettonWallet: vaultData.jettonWallet,
+            dictSwapsInfo: emptyDict,
+            value: toNano('0.05')
+        };
+        await vault.sendChangeVaultData(provider.sender(), params);
 
         console.log('\nTransaction sent successfully!');
     } catch (error) {

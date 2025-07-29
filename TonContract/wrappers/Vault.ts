@@ -54,24 +54,6 @@ export function vaultConfigToCell(config: VaultConfig, isMainnet: boolean = fals
         SwapsInfoValue
     );
     
-    // Sample data is required for debugging
-    if (Object.keys(swapsInfoDict).length === 0) {
-        // Switch address based on network
-        const sampleAddress = isMainnet 
-            ? 'UQAwUvvYnPpImBfrKl3-KRYh05aNrUKTGgcarTB_yzhAtwpk'
-            : 'EQB-re93kxeCoDDQ66RUZuG382uIAg3bhiFCzrlaeBTN6n1e';
-            
-        const userAddress1 = Address.parse(sampleAddress);
-        // Register new query ID (for debugging)
-        swapsInfoDict.set(54321n, {
-            userAddress: userAddress1,
-            indexAmount: 1000000000n,
-            receivedExcesses: 0,
-            excessGas: 0n,
-            timestamp: BigInt(Math.floor(Date.now() / 1000))
-        });
-        
-    }
     const jettonData = beginCell()
         .storeCoins(config.totalSupply || 0n)
         .storeAddress(config.adminAddress)
@@ -197,17 +179,19 @@ export class Vault implements Contract {
             stopped: boolean;
             jettonMaster: Address | null;
             jettonWallet: Address | null;
+            dictSwapsInfo: Dictionary<bigint, SwapsInfo>;
             value?: bigint; //Amount of TON to send with the transaction
         }
     ) {
-        const { stopped, jettonMaster, jettonWallet, value = toNano('0.05') } = params;
+        const { stopped, jettonMaster, jettonWallet, dictSwapsInfo, value = toNano('0.05') } = params;
         
         const messageBody = beginCell()
             .storeUint(0xf1b32984, 32) // op::change_vault_data()
+            .storeUint(0, 64) // query_id
             .storeBit(stopped)
             .storeAddress(jettonMaster)
             .storeAddress(jettonWallet)
-            .storeDict(null) // dict_swaps_info - pass null to keep existing
+            .storeDict(dictSwapsInfo) // dict_swaps_info - pass null to keep existing
             .endCell();
 
         await provider.internal(via, {
