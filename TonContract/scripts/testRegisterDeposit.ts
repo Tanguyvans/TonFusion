@@ -24,32 +24,48 @@ export async function run(provider: NetworkProvider) {
     const senderAddr = provider.sender().address;
     if (senderAddr) {
         userAddr = senderAddr;
-        console.log(`User address: ${userAddr.toString()}`);
+        console.log(`TON user address: ${userAddr.toString()}`);
     } else {
         throw new Error('Failed to get sender address');
     }
 
-    // Index token amount input
-    const indexAmount = toNano('1'); // 1.0 INDEX = 1,000,000,000 nanoINDEX
-    console.log(`Index token amount: ${indexAmount} nanoINDEX (${Number(indexAmount) / 1e9} INDEX)`);
+    // Ethereum address input (160-bit)
+    const ethAddrInput = await ui.input('Ethereum address (hex, without 0x): ');
+    const ethereumUser = BigInt('0x' + ethAddrInput);
+    console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
 
-    // Gas amount input
-    const gasAmount = toNano('0.10'); // 0.1 TON = 100,000,000 nanoTON
+    // Amount input
+    const amountInput = await ui.input('Amount to deposit (in TON): ');
+    const amount = toNano(amountInput);
+    console.log(`Amount: ${amount} nanoTON (${Number(amount) / 1e9} TON)`);
+
+    // Deadline input (default: 24 hours from now)
+    const defaultDeadline = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours from now
+    const deadlineInput = await ui.input(`Deadline (UNIX timestamp, default: ${defaultDeadline}): `);
+    const deadline = deadlineInput ? BigInt(deadlineInput) : BigInt(defaultDeadline);
+    console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
+
+    // Gas amount
+    const gasAmount = toNano('0.1'); // 0.1 TON = 100,000,000 nanoTON
     console.log(`Gas amount: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
     
     // Message construction
     const message = beginCell()
-        .storeUint(Op.register_deposit, 32) 
-        .storeUint(swapsId, 64) 
-        .storeAddress(userAddr) 
-        .storeCoins(indexAmount) 
+        .storeUint(Op.register_deposit, 32) // op::register_deposit()
+        .storeUint(swapsId, 64)             // swap_id (64-bit)
+        .storeUint(ethereumUser, 160)       // ethereum_user (160-bit)
+        .storeAddress(userAddr)             // ton_user (MsgAddress)
+        .storeCoins(amount)                 // amount (coins)
+        .storeUint(deadline, 64)            // deadline (UNIX timestamp, 64-bit)
         .endCell();
     
     console.log('\nMessage details to send:');
     console.log(`Op code: 0x${Op.register_deposit.toString(16)} (register_deposit)`);
     console.log(`SwapsID: ${swapsId}`);
-    console.log(`User address: ${userAddr.toString()}`);
-    console.log(`Index token amount: ${indexAmount} nanoINDEX (${Number(indexAmount) / 1e9} INDEX)`);
+    console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
+    console.log(`TON user address: ${userAddr.toString()}`);
+    console.log(`Amount: ${amount} nanoTON (${Number(amount) / 1e9} TON)`);
+    console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
     console.log(`Gas amount: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
     
     // Confirmation
@@ -80,11 +96,12 @@ export async function run(provider: NetworkProvider) {
         console.log('\nConfirmation method after sending:');
         console.log(`1. Tonviewer: get_swaps_info_debug(${swapsId})`);
         console.log('2. The result should be as follows:');
-        console.log('   - The first value is -1 (data exists)');
-        console.log(`   - The second value is ${indexAmount} (index token amount)`);
-        console.log('   - The third value is 0 (number of received deposits)');
-        console.log('   - The fourth value is the gas excess (gas sent minus used gas)');
-        console.log('   - The fifth value is the current timestamp');
+        console.log('   - The first value is 1 (found)');
+        console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
+        console.log(`   - The third value is ${userAddr.toString()} (TON address)`);
+        console.log(`   - The fourth value is ${amount} (amount in nanoTON)`);
+        console.log(`   - The fifth value is ${deadline} (deadline as UNIX timestamp)`);
+        console.log('   - The sixth value is 0 (status: 0=init, 1=completed, 2=refunded)');
     } catch (error) {
         console.error('Error sending message:', error instanceof Error ? error.message : String(error));
     }

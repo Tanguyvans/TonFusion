@@ -12,28 +12,28 @@ import {
 } from '@ton/core';
 
 export interface SwapsInfo {
-    userAddress: Address;
-    indexAmount: bigint;
-    receivedExcesses: number;
-    excessGas: bigint;
-    timestamp: bigint;
+    ethereumUser: bigint;    // 160-bit Ethereum address
+    tonUser: Address;        // TON address (MsgAddress)
+    amount: bigint;          // Amount in coins
+    deadline: bigint;        // UNIX timestamp
+    status: number;          // 0=init, 1=completed, 2=refunded
 }
+
 export const SwapsInfoValue = {
     serialize: (src: SwapsInfo, builder: any) => {
-        builder.storeAddress(src.userAddress);  // Address
-        builder.storeCoins(src.indexAmount);    // VarUInteger
-        builder.storeUint(src.receivedExcesses, 8);
-        builder.storeCoins(src.excessGas);      // VarUInteger
-        builder.storeUint(src.timestamp, 32);
+        builder.storeUint(src.ethereumUser, 160);  // 160-bit Ethereum address
+        builder.storeAddress(src.tonUser);         // TON address (MsgAddress)
+        builder.storeCoins(src.amount);            // Amount in coins
+        builder.storeUint(src.deadline, 64);       // Deadline (UNIX timestamp)
+        builder.storeUint(src.status, 2);          // Status (2 bits)
     },
     parse: (slice: any): SwapsInfo => {
-        const userAddress = slice.loadAddress();  // Address
-        const indexAmount = slice.loadCoins();    // VarUInteger
-        const receivedExcessesRaw = slice.loadUint(8);
-        const receivedExcesses = Number(receivedExcessesRaw); 
-        const excessGas = slice.loadCoins();      // VarUInteger
-        const timestamp = slice.loadUint(32); 
-        return { userAddress, indexAmount, receivedExcesses, excessGas, timestamp };
+        const ethereumUser = slice.loadUintBig(160);  // 160-bit Ethereum address
+        const tonUser = slice.loadAddress();          // TON address (MsgAddress)
+        const amount = slice.loadCoins();             // Amount in coins
+        const deadline = slice.loadUintBig(64);        // Deadline (UNIX timestamp)
+        const status = slice.loadUint(2);             // Status (2 bits)
+        return { ethereumUser, tonUser, amount, deadline, status };
     }
 };
 
@@ -180,10 +180,10 @@ export class Vault implements Contract {
             jettonMaster: Address | null;
             jettonWallet: Address | null;
             dictSwapsInfo: Dictionary<bigint, SwapsInfo>;
-            value?: bigint; //Amount of TON to send with the transaction
+            value?: bigint; // Amount of TON to send with the transaction
         }
     ) {
-        const { stopped, jettonMaster, jettonWallet, dictSwapsInfo, value = toNano('0.05') } = params;
+        const { stopped, jettonMaster, jettonWallet, dictSwapsInfo, value = toNano('0.1') } = params;
         
         const messageBody = beginCell()
             .storeUint(0xf1b32984, 32) // op::change_vault_data()
@@ -202,14 +202,18 @@ export class Vault implements Contract {
     }
     
     /**
-     * SwapsInfo map
+     * Get swaps info map
      * @param provider Contract provider
-     * @returns SwapsInfo map
+     * @returns Map of swap ID to SwapsInfo
      */
-    async getSwapsInfo(provider: ContractProvider): Promise<Map<bigint, { userAddress: Address, indexAmount: bigint, receivedExcesses: number, excessGas: bigint, timestamp: bigint }>> {
+    async getSwapsInfo(provider: ContractProvider): Promise<Map<bigint, SwapsInfo>> {
         try {
             const res = await provider.get('get_vault_data', []);
-            const stopped = res.stack.readNumber();
+            // Skip stopped, jettonMaster, jettonWallet
+            res.stack.readNumber(); // stopped
+            res.stack.readAddress(); // jettonMaster
+            res.stack.readAddress(); // jettonWallet
+            
             const swapsInfoCell = res.stack.readCellOpt();
             
             if (!swapsInfoCell) {
@@ -223,25 +227,14 @@ export class Vault implements Contract {
                 swapsInfoCell
             );
             
-            // Result map
-            const resultMap = new Map<bigint, { userAddress: Address, indexAmount: bigint, receivedExcesses: number, excessGas: bigint, timestamp: bigint }>();
+            // Convert to Map
+            const resultMap = new Map<bigint, SwapsInfo>();
             
-            // Process each entry in the dictionary
             for (const [swapId, info] of swapsInfoDict) {
                 try {
-                    // Address is directly available in the new SwapsInfo type
-                    const userAddress = info.userAddress;
-                    
-                    // Add to result map
-                    resultMap.set(swapId, {
-                        userAddress,
-                        indexAmount: info.indexAmount,
-                        receivedExcesses: info.receivedExcesses,
-                        excessGas: info.excessGas,
-                        timestamp: info.timestamp
-                    });
+                    resultMap.set(swapId, info);
                 } catch (e) {
-                    console.log('SwapsID information parsing error. Skipping this item.', e);
+                    console.error('Error parsing swap info for ID', swapId, ':', e);
                 }
             }
             
@@ -250,6 +243,53 @@ export class Vault implements Contract {
             console.error('Error in getSwapsInfo:', error);
             return new Map();
         }
+    }
+    
+    /**
+     * Get swap info by ID
+     * @param provider Contract provider
+     * @param swapId Swap ID
+     * @returns SwapsInfo or null if not found
+     */
+    async getSwapInfo(provider: ContractProvider, swapId: bigint): Promise<SwapsInfo | null> {
+        const swapsInfo = await this.getSwapsInfo(provider);
+        return swapsInfo.get(swapId) || null;
+    }
+
+    /**
+     * Register a new deposit
+     * @param provider Contract provider
+     * @param via Sender address
+     * @param params Deposit parameters
+     */
+    async sendRegisterDeposit(
+        provider: ContractProvider,
+        via: Sender,
+        params: {
+            swapId: bigint;
+            ethereumUser: bigint;  // 160-bit Ethereum address
+            tonUser: Address;      // TON address
+            amount: bigint;        // Amount to deposit
+            deadline: bigint;      // Deadline (UNIX timestamp)
+            value?: bigint;        // Amount of TON to send with the transaction
+        }
+    ) {
+        const { swapId, ethereumUser, tonUser, amount, deadline, value = toNano('0.05') } = params;
+        
+        const messageBody = beginCell()
+            .storeUint(0xf1b32984, 32) // op::register_deposit()
+            .storeUint(swapId, 64)      // swap_id
+            .storeUint(ethereumUser, 160) // ethereum_user (160-bit)
+            .storeAddress(tonUser)       // ton_user (MsgAddress)
+            .storeCoins(amount)          // amount (coins)
+            .storeUint(deadline, 64)     // deadline (UNIX timestamp)
+            .endCell();
+
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: messageBody,
+        });
     }
 }
 
