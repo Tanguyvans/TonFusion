@@ -65,24 +65,6 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
     return (null(), 0, 0, 0, 0);
 }
 
-
-
-;; ユーザークエリー情報を保存する関数
-cell store_user_query_data(slice user_address, int expected_tokens) inline {
-    return begin_cell()
-        .store_slice(user_address)
-        .store_uint(expected_tokens, 8) ;; 期待するトークン数（最大8ビット）
-        .end_cell();
-}
-
-;; ユーザークエリー情報を読み込む関数
-(slice, int) load_user_query_data(cell query_cell) inline {
-    slice query_slice = query_cell.begin_parse();
-    slice user_address = query_slice~load_msg_addr();
-    int expected_tokens = query_slice~load_uint(8);
-    return (user_address, expected_tokens);
-}
-
 () send_jetton(
     int query_id,
     slice jetton_wallet_address,
