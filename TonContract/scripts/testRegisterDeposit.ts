@@ -30,8 +30,10 @@ export async function run(provider: NetworkProvider) {
     }
 
     // Ethereum address input (160-bit)
-    const ethAddrInput = await ui.input('Ethereum address (hex, without 0x): ');
-    const ethereumUser = BigInt('0x' + ethAddrInput);
+    const ethAddrInput = await ui.input('Ethereum address (with 0x): ');
+    // Remove '0x' prefix if present and convert to BigInt
+    const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
+    const ethereumUser = BigInt('0x' + cleanEthAddr);
     console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
 
     // Amount input
@@ -46,7 +48,7 @@ export async function run(provider: NetworkProvider) {
     console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
 
     // Gas amount
-    const gasAmount = toNano('0.1'); // 0.1 TON = 100,000,000 nanoTON
+    const gasAmount = toNano('0.05'); // 0.05 TON = 50,000,000 nanoTON
     console.log(`Gas amount: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
     
     // Message construction
@@ -96,7 +98,7 @@ export async function run(provider: NetworkProvider) {
         console.log('\nConfirmation method after sending:');
         console.log(`1. Tonviewer: get_swaps_info_debug(${swapsId})`);
         console.log('2. The result should be as follows:');
-        console.log('   - The first value is 1 (found)');
+        console.log('   - The first value is -0x1 (found)');
         console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
         console.log(`   - The third value is ${userAddr.toString()} (TON address)`);
         console.log(`   - The fourth value is ${amount} (amount in nanoTON)`);
