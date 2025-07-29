@@ -25,7 +25,7 @@
     int fwd_fee = muldiv(cs~load_coins(), 3, 2); ;; we use message fwd_fee for estimation of forward_payload costs
 
     int op = in_msg_body~load_uint(32);
-    int query_id = in_msg_body~load_uint(64);
+    int swap_id = in_msg_body~load_uint(64);
 
     load_storage();
 
@@ -33,7 +33,7 @@
         ;; コントラクトが停止中かチェック
         throw_unless(er::vault_is_stopped(), storage::stopped != -1);
         
-        ;; クエリーID、ユーザーアドレスを取得
+        ;; ユーザーアドレスを取得
         slice user_address = in_msg_body~load_msg_addr();
         
         ;; ガス計算 - register_depositオペレーション自体のみ
@@ -45,8 +45,8 @@
         ;; 必要なガス量を確保
         throw_unless(er::insufficient_gas(), msg_value >= required_gas);
     
-        ;; クエリーIDに紐づく情報を登録（ユーティリティ関数で統一）
-        update_swaps_info(query_id, user_address, 0, 0, 0, now());
+        ;; SwapsInfoIDに紐づく情報を登録
+        update_swaps_info(swap_id, user_address, 0, 0, 0, now());
         
         save_storage();
         return ();
@@ -107,7 +107,7 @@
             .store_coins(0)
             .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
             .store_uint(op::take_wallet_address(), 32)
-            .store_uint(query_id, 64);
+            .store_uint(swap_id, 64);
 
         if (is_resolvable?(owner_address)) {
             msg = msg.store_slice(calculate_user_jetton_wallet_address(owner_address, my_address(), storage::jetton_wallet_code));
@@ -149,10 +149,10 @@ slice get_wallet_address(slice admin_address) method_id {
     );
 }
 
-;; クエリIDの詳細情報を取得するデバッグ用getter
-(int, slice, int, int, int, int) get_query_info_debug(int query_id) method_id {
+;; SwapsInfoIDの詳細情報を取得するデバッグ用getter
+(int, slice, int, int, int, int) get_swaps_info_debug(int swap_id) method_id {
     load_storage();
-    (slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) = load_swaps_info(query_id);
+    (slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) = load_swaps_info(swap_id);
     int found = ~ equal_slices(user_address, addr_none());
     return (
         found,

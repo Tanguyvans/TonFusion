@@ -29,11 +29,11 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 
 
 ;; swaps dictを更新する関数
-() update_swaps_info(int query_id, slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) impure {
+() update_swaps_info(int swap_id, slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) impure {
     ;; udict_set_builder を使用して一行で処理
     storage::dict_swaps_info~udict_set_builder(
         64,
-        query_id,
+        swap_id,
         begin_cell()
             .store_slice(user_address)
             .store_coins(index_amount)
@@ -44,29 +44,29 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 }
 
 ;; swaps dictから情報を読み込む関数
-(slice, int, int, int, int) load_swaps_info(int query_id) impure {
-    (slice query_data, int found) = storage::dict_swaps_info.udict_get?(64, query_id);
+(slice, int, int, int, int) load_swaps_info(int swap_id) impure {
+    (slice swap_data, int found) = storage::dict_swaps_info.udict_get?(64, swap_id);
     if (found) {
         ;; 参照がある場合は、参照先のセルからデータを読み込む
-        int refs = query_data.slice_refs();
+        int refs = swap_data.slice_refs();
         if (refs > 0) {
-            cell ref_cell = query_data~load_ref();
-            query_data = ref_cell.begin_parse();
+            cell ref_cell = swap_data~load_ref();
+            swap_data = ref_cell.begin_parse();
         }
         
         ;; アドレスをスライスとして読み込み、金額もVarUIntegerとして読み込み
-        slice user_address = query_data~load_msg_addr();
-        int index_amount = query_data~load_coins();
-        int received_excesses = query_data~load_uint(8);
-        int excess_gas = query_data~load_coins();
-        int timestamp = query_data~load_uint(32);
+        slice user_address = swap_data~load_msg_addr();
+        int index_amount = swap_data~load_coins();
+        int received_excesses = swap_data~load_uint(8);
+        int excess_gas = swap_data~load_coins();
+        int timestamp = swap_data~load_uint(32);
         return (user_address, index_amount, received_excesses, excess_gas, timestamp);
     }
     return (null(), 0, 0, 0, 0);
 }
 
 () send_jetton(
-    int query_id,
+    int swap_id,
     slice jetton_wallet_address,
     int gas,
     int jetton_amount,
@@ -74,7 +74,7 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 ) impure {
     cell body = begin_cell()
         .store_uint(op::transfer(), 32)
-        .store_uint(query_id, 64)
+        .store_uint(swap_id, 64)
         .store_coins(jetton_amount)
         .store_slice(to_address)
         .store_slice(to_address)
