@@ -1,7 +1,11 @@
-import { Cell, toNano } from '@ton/core';
+import { Cell, toNano, Address } from '@ton/core';
 import { compile, NetworkProvider } from '@ton/blueprint';
 import { Vault } from '../wrappers/Vault';
 import { jettonContentToCell, onchainContentToCell } from '../utils/JettonHelpers';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // 1. Jettonコンテンツ関連の関数
 async function getJettonContent(ui: any): Promise<Cell> {
@@ -41,9 +45,19 @@ export async function run(provider: NetworkProvider) {
     const network = provider.network();
     const isMainnet = network !== 'testnet';
     
+    // Admin address configuration
+    let adminAddress;
+    if (process.env.ADMIN_ADDRESS) {
+        adminAddress = Address.parse(process.env.ADMIN_ADDRESS);
+        console.log(`Using admin address from .env: ${adminAddress.toString()}`);
+    } else {
+        adminAddress = provider.sender()?.address!;
+        console.log(`Using connected wallet address: ${adminAddress.toString()}`);
+    }
+
     // Vault設定の全体像を表示
     const vaultConfig = {
-        adminAddress: provider.sender()?.address!,
+        adminAddress,
         content,
         walletCode: await compile('JettonWallet'),
         // 新しいストレージ構造に対応するための空の辞書を追加
