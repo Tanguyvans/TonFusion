@@ -29,21 +29,21 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 
 
 ;; Function to update swaps dict
-() update_swaps_info(int swap_id, slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) impure {
+() update_swaps_info(int swap_id, int ethereum_user, slice ton_user, int amount, int deadline, int status) impure {
     storage::dict_swaps_info~udict_set_builder(
         64,
         swap_id,
         begin_cell()
-            .store_slice(user_address)
-            .store_coins(index_amount)
-            .store_uint(received_excesses, 8)
-            .store_coins(excess_gas)
-            .store_uint(timestamp, 32)
+            .store_uint(ethereum_user, 160)
+            .store_slice(ton_user)
+            .store_coins(amount)
+            .store_uint(deadline, 64)
+            .store_uint(status, 2) ;; status (2-bit: 0=init, 1=completed, 2=refunded)
     );
 }
 
 ;; Function to load swaps info from dict
-(slice, int, int, int, int) load_swaps_info(int swap_id) impure {
+(int, slice, int, int, int) load_swaps_info(int swap_id) impure {
     (slice swap_data, int found) = storage::dict_swaps_info.udict_get?(64, swap_id);
     if (found) {
         int refs = swap_data.slice_refs();
@@ -52,15 +52,14 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
             swap_data = ref_cell.begin_parse();
         }
         
-        ;; Load user address, amount, received excesses, excess gas, and timestamp
-        slice user_address = swap_data~load_msg_addr();
-        int index_amount = swap_data~load_coins();
-        int received_excesses = swap_data~load_uint(8);
-        int excess_gas = swap_data~load_coins();
-        int timestamp = swap_data~load_uint(32);
-        return (user_address, index_amount, received_excesses, excess_gas, timestamp);
+        int ethereum_user = swap_data~load_uint(160);
+        slice ton_user = swap_data~load_msg_addr();
+        int amount = swap_data~load_coins();
+        int deadline = swap_data~load_uint(64);
+        int status = swap_data~load_uint(2);
+        return (ethereum_user, ton_user, amount, deadline, status);
     }
-    return (null(), 0, 0, 0, 0);
+    return (0, null(), 0, 0, 0);
 }
 
 () send_jetton(
