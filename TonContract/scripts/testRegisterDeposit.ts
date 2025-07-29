@@ -13,11 +13,11 @@ export async function run(provider: NetworkProvider) {
     const vaultAddr = await ui.inputAddress('テスト対象のVaultアドレス: ');
     const vault = provider.open(Vault.createFromAddress(vaultAddr));
     
-    // クエリIDの手動入力
-    const input = await ui.input('クエリIDを入力してください（10進数）: ');
-    const queryId = BigInt(input);
-    console.log(`クエリID: ${queryId}`);
-    console.log(`クエリID（16進数）: 0x${queryId.toString(16)}`);
+    // SwapsIDの手動入力
+    const input = await ui.input('SwapsIDを入力してください（10進数）: ');
+    const swapsId = BigInt(input);
+    console.log(`SwapsID: ${swapsId}`);
+    console.log(`SwapsID（16進数）: 0x${swapsId.toString(16)}`);
     
     // ユーザーアドレスの設定（常にデフォルトを使用）
     let userAddr: Address;
@@ -40,14 +40,14 @@ export async function run(provider: NetworkProvider) {
     // メッセージの構築
     const message = beginCell()
         .storeUint(Op.register_deposit, 32) // 正しいopコード: register_deposit
-        .storeUint(queryId, 64) // query_id
+        .storeUint(swapsId, 64) // swaps_id
         .storeAddress(userAddr) // user_address
         .storeCoins(indexAmount) // index_amount
         .endCell();
     
     console.log('\n送信するメッセージの詳細:');
     console.log(`オペコード: 0x${Op.register_deposit.toString(16)} (register_deposit)`);
-    console.log(`クエリID: ${queryId}`);
+    console.log(`SwapsID: ${swapsId}`);
     console.log(`ユーザーアドレス: ${userAddr.toString()}`);
     console.log(`インデックストークン量: ${indexAmount} nanoINDEX (${Number(indexAmount) / 1e9} INDEX)`);
     console.log(`ガス量: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
@@ -78,7 +78,7 @@ export async function run(provider: NetworkProvider) {
         console.log('メッセージが正常に送信されました！');
         console.log('Tonviewerでトランザクションを確認できます');
         console.log('\n送信後の確認方法:');
-        console.log(`1. Tonviewerで以下の関数を実行: get_query_info_debug(${queryId})`);
+        console.log(`1. Tonviewerで以下の関数を実行: get_swaps_info_debug(${swapsId})`);
         console.log('2. 結果が以下のようになっていれば成功:');
         console.log('   - 1番目の値が-1（データが存在する）');
         console.log(`   - 2番目の値が${indexAmount}（インデックストークン量）`);

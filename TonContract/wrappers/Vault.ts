@@ -119,11 +119,11 @@ export class Vault implements Contract {
     async getVaultData(provider: ContractProvider) {
         const result = await provider.get('get_vault_data', []);
         const stopped = result.stack.readNumber();
-        const dictQueryInfo = result.stack.readCell();
+        const dictSwapsInfo = result.stack.readCell();
         
         return {
             stopped: stopped !== 0,
-            dictQueryInfo
+            dictSwapsInfo
         };
     }
 
@@ -159,17 +159,17 @@ export class Vault implements Contract {
     }
     
     /**
-     * クエリIDに紐づく情報を取得する
+     * SwapsIDに紐づく情報を取得する
      * @param provider コントラクトプロバイダー
-     * @returns クエリIDとユーザー情報のマップ
+     * @returns SwapsIDとユーザー情報のマップ
      */
-    async getQueryInfo(provider: ContractProvider): Promise<Map<bigint, { userAddress: Address, indexAmount: bigint, receivedExcesses: number, excessGas: bigint, timestamp: bigint }>> {
+    async getSwapsInfo(provider: ContractProvider): Promise<Map<bigint, { userAddress: Address, indexAmount: bigint, receivedExcesses: number, excessGas: bigint, timestamp: bigint }>> {
         try {
             const res = await provider.get('get_vault_data', []);
             const stopped = res.stack.readNumber();
-            const queryInfoCell = res.stack.readCellOpt();
+            const swapsInfoCell = res.stack.readCellOpt();
             
-            if (!queryInfoCell) {
+            if (!swapsInfoCell) {
                 return new Map();
             }
             
@@ -177,20 +177,20 @@ export class Vault implements Contract {
             const swapsInfoDict = Dictionary.loadDirect(
                 Dictionary.Keys.BigUint(64),
                 SwapsInfoValue,
-                queryInfoCell
+                swapsInfoCell
             );
             
             // 結果をマップとして返す
             const resultMap = new Map<bigint, { userAddress: Address, indexAmount: bigint, receivedExcesses: number, excessGas: bigint, timestamp: bigint }>();
             
             // 辞書の各エントリを処理
-            for (const [queryId, info] of swapsInfoDict) {
+            for (const [swapId, info] of swapsInfoDict) {
                 try {
                     // 新しいSwapsInfo型ではアドレスが直接利用可能
                     const userAddress = info.userAddress;
                     
                     // 結果マップに追加
-                    resultMap.set(queryId, {
+                    resultMap.set(swapId, {
                         userAddress,
                         indexAmount: info.indexAmount,
                         receivedExcesses: info.receivedExcesses,
@@ -198,13 +198,13 @@ export class Vault implements Contract {
                         timestamp: info.timestamp
                     });
                 } catch (e) {
-                    console.log('クエリID情報の解析エラー。この項目はスキップします。', e);
+                    console.log('SwapsID情報の解析エラー。この項目はスキップします。', e);
                 }
             }
             
             return resultMap;
         } catch (error: any) {
-            console.error('Error in getQueryInfo:', error);
+            console.error('Error in getSwapsInfo:', error);
             return new Map();
         }
     }
