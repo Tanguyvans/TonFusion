@@ -46,7 +46,7 @@
         throw_unless(er::insufficient_gas(), msg_value >= required_gas);
     
         ;; クエリーIDに紐づく情報を登録（ユーティリティ関数で統一）
-        update_query_info(query_id, user_address, 0, 0, 0, now());
+        update_swaps_info(query_id, user_address, 0, 0, 0, now());
         
         save_storage();
         return ();
@@ -55,7 +55,7 @@
     if (op == op::change_vault_data()) {
         throw_unless(er::not_admin(), equal_slices(sender_address, storage::admin_address));
         storage::stopped = in_msg_body~load_bool();
-        storage::dict_query_info = in_msg_body~load_dict();
+        storage::dict_swaps_info = in_msg_body~load_dict();
         save_storage();
         return ();
     }
@@ -145,14 +145,14 @@ slice get_wallet_address(slice admin_address) method_id {
     load_storage();
     return (
         storage::stopped,
-        storage::dict_query_info
+        storage::dict_swaps_info
     );
 }
 
 ;; クエリIDの詳細情報を取得するデバッグ用getter
 (int, slice, int, int, int, int) get_query_info_debug(int query_id) method_id {
     load_storage();
-    (slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) = load_query_info(query_id);
+    (slice user_address, int index_amount, int received_excesses, int excess_gas, int timestamp) = load_swaps_info(query_id);
     int found = ~ equal_slices(user_address, addr_none());
     return (
         found,
