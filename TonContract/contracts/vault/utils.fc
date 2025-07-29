@@ -2,8 +2,6 @@
 slice addr_none() asm "b{00} PUSHSLICE";
 
 ;; ========== ガス定数 ==========
-;; 全てのガス定数を用途ごとに整理
-
 ;; --- 基本処理系 ---
 ;; 基本的なデータ処理のガス消費量（0.005 TON）
 int gas_basic_processing_consumption() asm "5000000 PUSHINT";

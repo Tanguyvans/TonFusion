@@ -54,8 +54,7 @@ export async function run(provider: NetworkProvider) {
         adminAddress: provider.sender()?.address!,
         content,
         walletCode: await compile('JettonWallet'),
-        // Add empty dictionary for new storage structure
-        queryInfoDict: undefined, // Use empty queryInfoDict for initial deployment
+        dictSwapsInfo: undefined,
     };
     
     console.log('\nComplete Vault configuration:');

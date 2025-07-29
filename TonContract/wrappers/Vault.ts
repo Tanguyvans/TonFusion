@@ -10,24 +10,22 @@ import {
     SendMode,
 } from '@ton/core';
 
-// QueryInfo型とValue定義をグローバルに宣言
-export interface QueryInfo {
-    userAddress: Address;  // アドレスオブジェクトに変更
+export interface SwapsInfo {
+    userAddress: Address;
     indexAmount: bigint;
     receivedExcesses: number;
     excessGas: bigint;
     timestamp: bigint;
 }
-export const QueryInfoValue = {
-    serialize: (src: QueryInfo, builder: any) => {
+export const SwapsInfoValue = {
+    serialize: (src: SwapsInfo, builder: any) => {
         builder.storeAddress(src.userAddress);  // アドレスとして保存
         builder.storeCoins(src.indexAmount);    // VarUIntegerとして保存
         builder.storeUint(src.receivedExcesses, 8);
         builder.storeCoins(src.excessGas);      // VarUIntegerとして保存
         builder.storeUint(src.timestamp, 32);
     },
-    parse: (slice: any): QueryInfo => {
-        // 型定義に合わせて正確な型変換を行う
+    parse: (slice: any): SwapsInfo => {
         const userAddress = slice.loadAddress();  // アドレスとして読み込み   
         const indexAmount = slice.loadCoins();    // VarUIntegerとして読み込み
         const receivedExcessesRaw = slice.loadUint(8);
@@ -42,19 +40,19 @@ export interface VaultConfig {
     adminAddress: Address;
     content: Cell;
     walletCode: Cell;
-    dictQueryInfo?: Dictionary<bigint, QueryInfo>;
-    totalSupply?: bigint; // 総供給量を追加
+    dictSwapsInfo?: Dictionary<bigint, SwapsInfo>;
+    totalSupply?: bigint;
 };
 
 export function vaultConfigToCell(config: VaultConfig, isMainnet: boolean = false): Cell {
-    // クエリIDに紐づく情報辞書
-    let queryInfoDict = config.dictQueryInfo || Dictionary.empty(
+    // スワップIDに紐づく情報辞書
+    let swapsInfoDict = config.dictSwapsInfo || Dictionary.empty(
         Dictionary.Keys.BigUint(64),
-        QueryInfoValue
+        SwapsInfoValue
     );
     
     // サンプルデータが必要な場合（デバッグ用）
-    if (Object.keys(queryInfoDict).length === 0) {
+    if (Object.keys(swapsInfoDict).length === 0) {
         // ネットワークに応じてアドレスを切り替え
         const sampleAddress = isMainnet 
             ? 'UQAwUvvYnPpImBfrKl3-KRYh05aNrUKTGgcarTB_yzhAtwpk'
@@ -62,7 +60,7 @@ export function vaultConfigToCell(config: VaultConfig, isMainnet: boolean = fals
             
         const userAddress1 = Address.parse(sampleAddress);
         // 新しいクエリIDで登録（デバッグ用）
-        queryInfoDict.set(54321n, {
+        swapsInfoDict.set(54321n, {
             userAddress: userAddress1,
             indexAmount: 1000000000n,
             receivedExcesses: 0,
@@ -83,7 +81,7 @@ export function vaultConfigToCell(config: VaultConfig, isMainnet: boolean = fals
                 .endCell()
         )
         .storeBit(0) // stopped: false
-        .storeDict(queryInfoDict)
+        .storeDict(swapsInfoDict)
         .endCell();
 }
 
@@ -175,10 +173,10 @@ export class Vault implements Contract {
                 return new Map();
             }
             
-            // 新方式のQueryInfoValueで辞書をロード
-            const queryInfoDict = Dictionary.loadDirect(
+            // 新方式のSwapsInfoValueで辞書をロード
+            const swapsInfoDict = Dictionary.loadDirect(
                 Dictionary.Keys.BigUint(64),
-                QueryInfoValue,
+                SwapsInfoValue,
                 queryInfoCell
             );
             
@@ -186,9 +184,9 @@ export class Vault implements Contract {
             const resultMap = new Map<bigint, { userAddress: Address, indexAmount: bigint, receivedExcesses: number, excessGas: bigint, timestamp: bigint }>();
             
             // 辞書の各エントリを処理
-            for (const [queryId, info] of queryInfoDict) {
+            for (const [queryId, info] of swapsInfoDict) {
                 try {
-                    // 新しいQueryInfo型ではアドレスが直接利用可能
+                    // 新しいSwapsInfo型ではアドレスが直接利用可能
                     const userAddress = info.userAddress;
                     
                     // 結果マップに追加
