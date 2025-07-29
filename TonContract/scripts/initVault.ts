@@ -1,6 +1,8 @@
 import { NetworkProvider } from '@ton/blueprint';
 import { Address, Dictionary, toNano } from '@ton/core';
+import { JettonMaster } from '@ton/ton';
 import { Vault, SwapsInfo } from '../wrappers/Vault';
+import { getTonClient } from '../utils/TonClient';
 
 export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
@@ -20,15 +22,18 @@ export async function run(provider: NetworkProvider) {
     console.log(`Jetton Wallet: ${vaultData.jettonWallet?.toString()}`);
     console.log('-----------------');
 
+    // Calculate jetton wallet address
+    const tonClient = getTonClient(provider.network() === 'custom' ? 'mainnet' : 'testnet');
+    const calculatedJettonWallet = await tonClient.open(JettonMaster.create(vaultData.jettonMaster!)).getWalletAddress(address);
+
     // 変更予定の内容を表示
     console.log('\nChanges to be made:');
     console.log('-----------------');
-    console.log('Stopped: true -> false');
+    console.log('Stopped: false');
     console.log(`Jetton Master: ${vaultData.jettonMaster?.toString()}`);
-    console.log(`Jetton Wallet: ${vaultData.jettonWallet?.toString()}`);
+    console.log(`Jetton Wallet: ${calculatedJettonWallet.toString()}`);
     console.log('-----------------');
 
-    // ユーザーに確認
     const confirm = await ui.input('Do you want to apply these changes? (y/n): ');
     if (confirm.toLowerCase() !== 'y') {
         console.log('Operation cancelled');
@@ -42,7 +47,7 @@ export async function run(provider: NetworkProvider) {
         const params = {
             stopped: false,
             jettonMaster: vaultData.jettonMaster,
-            jettonWallet: vaultData.jettonWallet,
+            jettonWallet: calculatedJettonWallet, // Use the calculated jetton wallet address
             dictSwapsInfo: emptyDict,
             value: toNano('0.05')
         };
