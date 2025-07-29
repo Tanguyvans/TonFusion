@@ -4,6 +4,8 @@ global cell storage::content;
 global cell storage::jetton_wallet_code;
 
 global int storage::stopped;
+global slice storage::jetton_master;
+global slice storage::jetton_wallet;
 global cell storage::dict_swaps_info; ;; SwapsInfoID(64-bit) -> Swaps details (address, index amount, received excesses, excess gas, timestamp)
 
 () load_storage() impure inline {
@@ -15,6 +17,8 @@ global cell storage::dict_swaps_info; ;; SwapsInfoID(64-bit) -> Swaps details (a
     storage::content = sj~load_ref();
     storage::jetton_wallet_code = sj~load_ref();
     storage::stopped = ds~load_bool();
+    storage::jetton_master = ds~load_msg_addr();
+    storage::jetton_wallet = ds~load_msg_addr();
     
     ;; Load SwapsInfoID details
     if (~ ds.slice_empty?()) {
@@ -34,6 +38,8 @@ global cell storage::dict_swaps_info; ;; SwapsInfoID(64-bit) -> Swaps details (a
     cell data = begin_cell()
         .store_ref(jetton)
         .store_bool(storage::stopped)
+        .store_slice(storage::jetton_master)
+        .store_slice(storage::jetton_wallet)
         .store_dict(storage::dict_swaps_info)
         .end_cell();
     set_data(data);
