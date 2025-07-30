@@ -49,7 +49,7 @@
         int deadline = in_msg_body~load_uint(64);        ;; Deadline (UNIX timestamp)
         
         ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(swap_id, ethereum_user, ton_user, amount, deadline, 0);
+        update_swaps_info(swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
         
         save_storage();
         return ();
@@ -71,10 +71,27 @@
         ;; Get parameters
         int amount = in_msg_body~load_coins();           ;; Amount to deposit
         slice sender_address = in_msg_body~load_msg_addr(); ;; address which sent jetton
-        cell custom_payload = in_msg_body~load_maybe_ref();
+        cell forward_payload = in_msg_body~load_maybe_ref(); ;; Skip custom_payload and get forward_payload
+        cell custom_payload = in_msg_body~load_maybe_ref(); ;; Skip forward_payload and get custom_payload
+        
+        int ethereum_user = 0;
+        slice ton_user = sender_address;  ;; Default to sender address if not provided
+        int deadline = 0;
+        
+        ;; Parse forward_payload if it exists
+        if (~ forward_payload.null?()) {
+            slice payload_slice = forward_payload.begin_parse();
+            int op_code = payload_slice~load_uint(32); ;; Check op_code
+            
+            if (op_code == op::register_deposit()) { ;; Only process if it's register_deposit
+                ethereum_user = payload_slice~load_uint(160);  ;; Ethereum address (160 bits)
+                ton_user = payload_slice~load_msg_addr();      ;; TON address (MsgAddress)
+                deadline = payload_slice~load_uint(64);        ;; Deadline (64 bits)
+            }
+        }
         
         ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(swap_id, 0, sender_address, amount, 0, 0);
+        update_swaps_info(swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
         
         save_storage();
         return ();
@@ -191,8 +208,6 @@
         send_raw_message(msg.store_maybe_ref(included_address).end_cell(), 64);
         return ();
     }
-
-
     throw(er::wrong_op());
 }
 
@@ -227,15 +242,16 @@ slice get_wallet_address(slice admin_address) method_id {
 }
 
 ;; Debug getter to retrieve SwapsInfoID details
-(int, int, slice, int, int, int) get_swaps_info_debug(int swap_id) method_id {
+(int, int, slice, int, int, int, int) get_swaps_info_debug(int swap_id) method_id {
     load_storage();
-    (int ethereum_user, slice ton_user, int amount, int deadline, int status) = load_swaps_info(swap_id);
+    (int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) = load_swaps_info(swap_id);
     int found = ~ equal_slices(ton_user, addr_none());
     return (
         found,
         ethereum_user,
         ton_user,
         amount,
+        creation_timestamp,
         deadline,
         status
     );

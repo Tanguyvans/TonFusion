@@ -29,8 +29,8 @@ npx blueprint test
 ```bash
 npx blueprint run
 ```
-1. Deploy Vault
-2. Init Vault
+1. deployVault
+2. initVault
    - Vault contract address: Address of the vault deployed in step 1
 
 ### Test Vault Operations by Scripts
@@ -41,6 +41,7 @@ npx blueprint run
    - Jetton Master address: kQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPsyy (USDT on testnet)
    - Destination address (Vault contract): Address of the vault deployed in Deploy & Initiate
    > Note: Ensure your wallet has enough USDT for transfer and TON for gas.
+
    > 1000000 nano = 1 USDT (decimals = 6), 1 TON = 1000000000 nano (decimals = 9)
 
 2. testWithdrawJetton
