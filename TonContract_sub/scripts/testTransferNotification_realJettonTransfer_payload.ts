@@ -130,16 +130,26 @@ export async function run(provider: NetworkProvider) {
             sendMode: SendMode.PAY_GAS_SEPARATELY // pay fees separately (DeployerSender only supports this mode)
         });
         
-        console.log('\nJetton transfer sent successfully!');
+        console.log('Jetton transfer sent successfully!');
         console.log('--------------------------------');
         console.log('Transaction details:');
-        console.log(`- From (sender): ${senderAddr.toString()}`);
-        console.log(`- Jetton Master: ${jettonMasterAddr.toString()}`);
-        console.log(`- Jetton Wallet: ${jettonWalletAddr.toString()}`);
-        console.log(`- Amount: ${amount} nano`);
-        console.log(`- Destination: ${destinationAddr.toString()}`);
-        console.log(`- Gas sent: ${gasAmount} nanoTON`);
-        console.log('\nYou can check the transaction on a TON explorer.');
+        console.log('- From (sender):', senderAddr.toString());
+        console.log('- Jetton Master:', jettonMasterAddr.toString());
+        console.log('- Jetton Wallet:', jettonWalletAddr.toString());
+        console.log('- Amount:', amount, 'nano');
+        console.log('- Destination:', destinationAddr.toString());
+        console.log('- Gas sent:', gasAmount, 'nanoTON');
+        
+        console.log('You can check the transaction on a TON explorer.');
+        console.log('\nConfirmation method after sending:');
+        console.log(`1. Tonviewer: get_swaps_info_debug(${swapsId})`);
+        console.log('2. The result should be as follows:');
+        console.log('   - The first value is -0x1 (found)');
+        console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
+        console.log(`   - The third value is ${senderAddr.toString()} (TON address)`);
+        console.log(`   - The fourth value is ${amount} (amount in nanoTON)`);
+        console.log(`   - The fifth value is ${deadline} (deadline as UNIX timestamp)`);
+        console.log('   - The sixth value is 0 (status: 0=init, 1=completed, 2=refunded)');
         
     } catch (error) {
         console.error('\nError sending Jetton transfer:');
