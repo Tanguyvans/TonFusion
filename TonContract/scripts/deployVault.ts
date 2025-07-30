@@ -6,7 +6,7 @@ import { onchainContentToCell } from '../utils/JettonHelpers';
 // Jetton content related function
 async function getJettonContent(ui: any): Promise<{ content: Cell, setupType: string }> {
     // Select setup type
-    const setupType = await ui.choose('Select setup type.', ['Detailed', 'Simple'], (v: string) => v);
+    const setupType = await ui.choose('Select setup type.', ['Simple', 'Detailed'], (v: string) => v);
     
     let name: string, symbol: string, description: string, image: string, decimals: string;
     

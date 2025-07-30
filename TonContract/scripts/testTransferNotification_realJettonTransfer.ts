@@ -22,14 +22,19 @@ export async function run(provider: NetworkProvider) {
     
     console.log(`\nSender address: ${senderAddr.toString()}`);
     
-    // Fixed values as per requirements
-    const queryId = 123n; // Fixed query_id
-    const amount = 1000000n; // Fixed amount in nano
-    const forwardTonAmount = toNano('0.02'); // 0.02 TON for forward message
+    // Get swaps ID and amount from user input
+    const swapsIdStr = await ui.input('Enter swaps ID (e.g., 123): ');
+    const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
+    
+    // Convert string inputs to BigInt
+    const swapsId = BigInt(swapsIdStr);
+    const amount = BigInt(amountStr);
+    
+    const forwardTonAmount = toNano('0.025'); // 0.025 TON for forward message (must be bigger than required_gas in op::transfer_notification(0.02 TON))
     
     console.log('\nTransaction details:');
     console.log('------------------');
-    console.log(`Query ID: ${queryId}`);
+    console.log(`SwapsID: ${swapsId}`);
     console.log(`Amount: ${amount} nano`);
     console.log(`Destination: ${destinationAddr.toString()}`);
     console.log(`Response destination: ${senderAddr.toString()}`);
@@ -38,7 +43,7 @@ export async function run(provider: NetworkProvider) {
     // Build the transfer message
     const transferMessage = beginCell()
         .storeUint(Op.transfer, 32) // transfer opcode from Constants
-        .storeUint(queryId, 64)    // query_id
+        .storeUint(swapsId, 64)    // swaps_id
         .storeCoins(amount)        // amount
         .storeAddress(destinationAddr) // destination
         .storeAddress(senderAddr)      // response_destination (sender)

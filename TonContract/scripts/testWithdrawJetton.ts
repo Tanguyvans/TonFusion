@@ -19,6 +19,9 @@ export async function run(provider: NetworkProvider) {
     // Amount input
     const amount = BigInt(await ui.input('Amount of Jettons to withdraw (in basic units): '));
     
+    // Swaps ID input
+    const swapsId = BigInt(await ui.input('Enter swaps ID (e.g., 123): '));
+    
     console.log('\nTransaction Details:');
     console.log('------------------');
     console.log(`Vault: ${vaultAddr.toString()}`);
@@ -38,7 +41,7 @@ export async function run(provider: NetworkProvider) {
         // Build the message
         const messageBody = beginCell()
             .storeUint(Op.withdraw_jetton, 32)  // op code
-            .storeUint(123n, 64)                // query_id
+            .storeUint(swapsId, 64)              // swaps_id (in query_id place)
             .storeAddress(recipientAddr)         // to_address
             .storeCoins(amount)                  // amount
             .endCell();
