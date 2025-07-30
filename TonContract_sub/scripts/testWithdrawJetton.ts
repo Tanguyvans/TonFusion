@@ -13,8 +13,12 @@ export async function run(provider: NetworkProvider) {
     const vaultAddr = await ui.inputAddress('Vault contract address: ');
     const vault = provider.open(Vault.createFromAddress(vaultAddr));
     
-    // Recipient address input
-    const recipientAddr = await ui.inputAddress('Recipient address (to receive Jettons): ');
+    // Get sender address (same as recipient)
+    const senderAddr = provider.sender().address;
+    if (!senderAddr) {
+        throw new Error('Failed to get sender address');
+    }
+    const recipientAddr = senderAddr;
     
     // Amount input
     const amount = BigInt(await ui.input('Amount of Jettons to withdraw (in basic units): '));
@@ -25,7 +29,7 @@ export async function run(provider: NetworkProvider) {
     console.log('\nTransaction Details:');
     console.log('------------------');
     console.log(`Vault: ${vaultAddr.toString()}`);
-    console.log(`Recipient: ${recipientAddr.toString()}`);
+    console.log(`Recipient (same as sender): ${recipientAddr.toString()}`);
     console.log(`Amount: ${amount} basic units`);
     
     // Confirmation
