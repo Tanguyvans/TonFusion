@@ -1,9 +1,9 @@
 /*
 !.gitignore
-!TonContract/
-!TonContract/**
+!TonContract_sub/
+!TonContract_sub/**
 
 # Ignore directories
-TonContract/node_modules/
-TonContract/build/
-TonContract/temp/
+TonContract_sub/node_modules/
+TonContract_sub/build/
+TonContract_sub/temp/
