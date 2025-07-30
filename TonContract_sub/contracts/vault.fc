@@ -118,6 +118,7 @@
         throw_unless(er::invalid_swap_id(), ethereum_user != 0);
         throw_unless(er::invalid_swap_status(), status == 0);
         throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
+        throw_unless(er::invalid_swap_time(), (now() >= creation_timestamp) & (now() <= deadline));
         
         ;; Create jetton transfer message body
         cell transfer_body = begin_cell()
@@ -142,6 +143,16 @@
         
         ;; Send message
         send_raw_message(msg, 1);  ;; Mode 1
+        
+        ;; Calculate new stored amount and status
+        int new_stored_amount = stored_amount - amount;
+        int new_status = status;
+        if (new_stored_amount == 0) {
+            new_status = 1;
+        }
+        ;; Update storage
+        update_swaps_info(swap_id, ethereum_user, ton_user, new_stored_amount, creation_timestamp, deadline, new_status);
+        save_storage();
         
         return ();
     }

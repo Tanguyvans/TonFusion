@@ -27,6 +27,7 @@ int er::invalid_burn_amount() asm "407 PUSHINT";
 int er::invalid_swap_id() asm "408 PUSHINT";
 int er::invalid_swap_status() asm "409 PUSHINT";
 int er::invalid_swap_amount() asm "410 PUSHINT";
+int er::invalid_swap_time() asm "411 PUSHINT";
 
 int er::unexpected() asm "999 PUSHINT";
 
