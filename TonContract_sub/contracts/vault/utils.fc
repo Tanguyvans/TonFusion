@@ -19,17 +19,15 @@ int gas_dict_update_consumption() asm "5000000 PUSHINT";
 ;; --- Excess Gas ---
 ;; Gas consumption for returning excess gas (0.005 TON)
 int gas_excess_return_consumption() asm "5000000 PUSHINT";
-;; Minimum excess threshold (0.001 TON)
-int min_excess_threshold() asm "1000000 PUSHINT";
 
-;; --- Jetton :: Minting ---
+;; --- Jetton :: Transfer ---
 ;; Gas consumption for jetton transfer message (0.05 TON)
 int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 
 
 
 ;; Function to update swaps dict
-() update_swaps_info(int swap_id, int ethereum_user, slice ton_user, int amount, int deadline, int status) impure {
+() update_swaps_info(int swap_id, int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) impure {
     storage::dict_swaps_info~udict_set_builder(
         64,
         swap_id,
@@ -37,13 +35,14 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
             .store_uint(ethereum_user, 160)
             .store_slice(ton_user)
             .store_coins(amount)
+            .store_uint(creation_timestamp, 64)
             .store_uint(deadline, 64)
             .store_uint(status, 2) ;; status (2-bit: 0=init, 1=completed, 2=refunded)
     );
 }
 
 ;; Function to load swaps info from dict
-(int, slice, int, int, int) load_swaps_info(int swap_id) impure {
+(int, slice, int, int, int, int) load_swaps_info(int swap_id) impure {
     (slice swap_data, int found) = storage::dict_swaps_info.udict_get?(64, swap_id);
     if (found) {
         int refs = swap_data.slice_refs();
@@ -55,11 +54,12 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
         int ethereum_user = swap_data~load_uint(160);
         slice ton_user = swap_data~load_msg_addr();
         int amount = swap_data~load_coins();
+        int creation_timestamp = swap_data~load_uint(64);
         int deadline = swap_data~load_uint(64);
         int status = swap_data~load_uint(2);
-        return (ethereum_user, ton_user, amount, deadline, status);
+        return (ethereum_user, ton_user, amount, creation_timestamp, deadline, status);
     }
-    return (0, null(), 0, 0, 0);
+    return (0, null(), 0, 0, 0, 0);
 }
 
 () send_jetton(

@@ -49,7 +49,7 @@
         int deadline = in_msg_body~load_uint(64);        ;; Deadline (UNIX timestamp)
         
         ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(swap_id, ethereum_user, ton_user, amount, deadline, 0);
+        update_swaps_info(swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
         
         save_storage();
         return ();
@@ -74,7 +74,7 @@
         cell custom_payload = in_msg_body~load_maybe_ref();
         
         ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(swap_id, 0, sender_address, amount, 0, 0);
+        update_swaps_info(swap_id, 0, sender_address, amount, now(), 0, 0);
         
         save_storage();
         return ();
@@ -227,15 +227,16 @@ slice get_wallet_address(slice admin_address) method_id {
 }
 
 ;; Debug getter to retrieve SwapsInfoID details
-(int, int, slice, int, int, int) get_swaps_info_debug(int swap_id) method_id {
+(int, int, slice, int, int, int, int) get_swaps_info_debug(int swap_id) method_id {
     load_storage();
-    (int ethereum_user, slice ton_user, int amount, int deadline, int status) = load_swaps_info(swap_id);
+    (int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) = load_swaps_info(swap_id);
     int found = ~ equal_slices(ton_user, addr_none());
     return (
         found,
         ethereum_user,
         ton_user,
         amount,
+        creation_timestamp,
         deadline,
         status
     );
