@@ -33,11 +33,33 @@ export async function run(provider: NetworkProvider) {
     
     // Get swaps ID and amount from user input
     const swapsIdStr = await ui.input('Enter swaps ID (e.g., 123): ');
-    const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
-    
-    // Convert string inputs to BigInt
     const swapsId = BigInt(swapsIdStr);
+    console.log(`SwapsID: ${swapsId}`);
+    console.log(`SwapsID (hex): 0x${swapsId.toString(16)}`);
+    
+    // Get swaps ID and amount from user input
+    const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
     const amount = BigInt(amountStr);
+    console.log(`Amount: ${amount} nano`);
+    
+    // Ethereum address input (160-bit)
+    const ethAddrInput = await ui.input('Ethereum address (with 0x): ');
+    // Remove '0x' prefix if present and convert to Buffer
+    const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
+    const ethereumUser = BigInt('0x' + cleanEthAddr);
+    console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
+    
+    // Convert to Buffer for the message
+    const ethereumUserBuffer = Buffer.alloc(20);
+    ethereumUserBuffer.writeBigUInt64BE(ethereumUser >> 96n, 0);
+    ethereumUserBuffer.writeBigUInt64BE((ethereumUser >> 32n) & 0xffffffffn, 8);
+    ethereumUserBuffer.writeUint32BE(Number(ethereumUser & 0xffffffffn), 16);
+    
+    // Deadline input (default: 24 hours from now)
+    const defaultDeadline = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours from now
+    const deadlineInput = await ui.input(`Deadline (UNIX timestamp, default: ${defaultDeadline}): `);
+    const deadline = deadlineInput ? BigInt(deadlineInput) : BigInt(defaultDeadline);
+    console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
     
     const forwardTonAmount = toNano('0.025'); // 0.025 TON for forward message (must be bigger than required_gas in op::transfer_notification(0.02 TON))
     const gasAmount = toNano('0.05'); // 0.05 TON for gas
@@ -56,9 +78,21 @@ export async function run(provider: NetworkProvider) {
     console.log('\nTransaction Parameters:');
     console.log(`  Forward TON:   ${forwardTonAmount} nano (${Number(forwardTonAmount) / 1e9} TON)`);
     console.log(`  Gas Allocated: ${gasAmount} nano (${Number(gasAmount) / 1e9} TON)`);
+    console.log('\nCustom Payload:');
+    console.log(`  Ethereum User: 0x${ethereumUser.toString(16)}`);
+    console.log(`  TON User: ${senderAddr.toString()}`);
+    console.log(`  Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
     console.log('\nAdditional Info:');
     console.log(`  Network: ${provider.network()}`);
     console.log('------------------');
+    
+    // Build forward payload
+    const forwardPayload = beginCell()
+        .storeUint(Op.register_deposit, 32) // op::register_deposit
+        .storeBuffer(ethereumUserBuffer)    // ethereum_user (160 bits)
+        .storeAddress(senderAddr)           // ton_user (using sender address)
+        .storeUint(deadline, 64)            // deadline (64 bits)
+        .endCell();
     
     // Build the transfer message
     const transferMessage = beginCell()
@@ -69,7 +103,8 @@ export async function run(provider: NetworkProvider) {
         .storeAddress(senderAddr)      // response_destination (sender)
         .storeBit(0)                // custom_payload: null
         .storeCoins(forwardTonAmount) // forward_ton_amount
-        .storeBit(0)                // forward_payload: null
+        .storeBit(1)                // forward_payload exists
+        .storeRef(forwardPayload)     // forward_payload with ethereum_user, ton_user, deadline
         .endCell();
     
     // Confirmation
@@ -95,16 +130,26 @@ export async function run(provider: NetworkProvider) {
             sendMode: SendMode.PAY_GAS_SEPARATELY // pay fees separately (DeployerSender only supports this mode)
         });
         
-        console.log('\nJetton transfer sent successfully!');
+        console.log('Jetton transfer sent successfully!');
         console.log('--------------------------------');
         console.log('Transaction details:');
-        console.log(`- From (sender): ${senderAddr.toString()}`);
-        console.log(`- Jetton Master: ${jettonMasterAddr.toString()}`);
-        console.log(`- Jetton Wallet: ${jettonWalletAddr.toString()}`);
-        console.log(`- Amount: ${amount} nano`);
-        console.log(`- Destination: ${destinationAddr.toString()}`);
-        console.log(`- Gas sent: ${gasAmount} nanoTON`);
-        console.log('\nYou can check the transaction on a TON explorer.');
+        console.log('- From (sender):', senderAddr.toString());
+        console.log('- Jetton Master:', jettonMasterAddr.toString());
+        console.log('- Jetton Wallet:', jettonWalletAddr.toString());
+        console.log('- Amount:', amount, 'nano');
+        console.log('- Destination:', destinationAddr.toString());
+        console.log('- Gas sent:', gasAmount, 'nanoTON');
+        
+        console.log('You can check the transaction on a TON explorer.');
+        console.log('\nConfirmation method after sending:');
+        console.log(`1. Tonviewer: get_swaps_info_debug(${swapsId})`);
+        console.log('2. The result should be as follows:');
+        console.log('   - The first value is -0x1 (found)');
+        console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
+        console.log(`   - The third value is ${senderAddr.toString()} (TON address)`);
+        console.log(`   - The fourth value is ${amount} (amount in nanoTON)`);
+        console.log(`   - The fifth value is ${deadline} (deadline as UNIX timestamp)`);
+        console.log('   - The sixth value is 0 (status: 0=init, 1=completed, 2=refunded)');
         
     } catch (error) {
         console.error('\nError sending Jetton transfer:');
