@@ -12,14 +12,14 @@ export abstract class Op {
     static take_wallet_address = 0xd1735400;
 
     // Vault operations
-    // 旧オペコードとの衝突を避けるため、過去の値を再利用
-    static register_deposit = 0x3a8f7c12; // デポジット情報登録
-    static check_timeouts = 0x12345678; // タイムアウト確認（将来的な拡張用）
+    static register_deposit = 0x3a8f7c12;
     static change_vault_data = 0xf1b32984;
     static send_admin_message = 0x78d5e3af;
     static change_code_and_data = 0xc4a0912f;
     static change_admin = 0x3f9a72c4;
     static change_content = 0x1d5e8b3f;
+
+    static jetton_withdraw = 0x3a8f7c13;
 }
 
 export abstract class Errors {
