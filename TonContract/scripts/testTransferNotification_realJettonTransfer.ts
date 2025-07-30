@@ -37,7 +37,7 @@ export async function run(provider: NetworkProvider) {
     
     // Build the transfer message
     const transferMessage = beginCell()
-        .storeUint(0xf8a7ea5, 32) // transfer opcode
+        .storeUint(Op.transfer, 32) // transfer opcode from Constants
         .storeUint(queryId, 64)    // query_id
         .storeCoins(amount)        // amount
         .storeAddress(destinationAddr) // destination
