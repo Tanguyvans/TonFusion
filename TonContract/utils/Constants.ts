@@ -19,7 +19,7 @@ export abstract class Op {
     static change_admin = 0x3f9a72c4;
     static change_content = 0x1d5e8b3f;
 
-    static jetton_withdraw = 0x3a8f7c13;
+    static withdraw_jetton = 0x1f045490;
 }
 
 export abstract class Errors {

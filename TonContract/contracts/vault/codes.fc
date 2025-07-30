@@ -1,5 +1,8 @@
 ;; Vault operation codes
 int op::register_deposit() asm "0x3a8f7c12 PUSHINT"; ;; Register deposit information
+int op::provide_wallet_address() asm "0x2c76b973 PUSHINT";
+int op::take_wallet_address() asm "0xd1735400 PUSHINT";
+int op::withdraw_jetton() asm "0x1f045490 PUSHINT";
 int op::change_vault_data() asm "0xf1b32984 PUSHINT";
 int op::send_admin_message() asm "0x78d5e3af PUSHINT";
 int op::change_code_and_data() asm "0xc4a0912f PUSHINT";
