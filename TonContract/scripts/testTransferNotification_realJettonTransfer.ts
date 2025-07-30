@@ -23,7 +23,7 @@ export async function run(provider: NetworkProvider) {
     console.log(`\nSender address: ${senderAddr.toString()}`);
     
     // Fixed values as per requirements
-    const queryId = 1753850630n; // Fixed query_id
+    const queryId = 123n; // Fixed query_id
     const amount = 1000000n; // Fixed amount in nano
     const forwardTonAmount = toNano('0.02'); // 0.02 TON for forward message
     
