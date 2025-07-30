@@ -46,10 +46,10 @@ export async function run(provider: NetworkProvider) {
             .storeCoins(amount)                  // amount
             .endCell();
         
-        // Send the transaction with 0.1 TON (0.05 TON for Jetton wallet + 0.05 TON for gas)
+        // Send the transaction 
         await provider.sender().send({
             to: vaultAddr,
-            value: toNano('0.1'),  // 0.1 TON total
+            value: toNano('0.1'), // must be bigger than required_gas in op::withdraw_jetton(0.065 TON)
             body: messageBody,
             sendMode: 1,  // Pay fee separately
         });

@@ -1,6 +1,9 @@
 import { NetworkProvider } from '@ton/blueprint';
-import { Address, beginCell, toNano, SendMode } from '@ton/core';
+import { Address, beginCell, toNano, SendMode, Cell } from '@ton/core';
+import { getJettonWalletAddr } from '../utils/Common';
 import { Op } from '../utils/Constants';
+import { getTonClient } from '../utils/TonClient';
+
 
 export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
@@ -8,11 +11,17 @@ export async function run(provider: NetworkProvider) {
     console.log('\nJetton Transfer Test Tool');
     console.log('-------------------------');
     
-    // Jetton wallet address input
-    const jettonWalletAddr = await ui.inputAddress('Jetton Wallet address: ');
+    // Get tonClient
+    const tonClient = getTonClient(provider.network() === 'custom' ? 'mainnet' : 'testnet');
+    
+    // Get Jetton master address
+    const jettonMasterAddr = await ui.inputAddress('Jetton Master address: ');
     
     // Destination address (Vault contract)
     const destinationAddr = await ui.inputAddress('Destination address (Vault contract): ');
+    
+    // Calculate Jetton wallet address
+    const jettonWalletAddr = await getJettonWalletAddr(tonClient, jettonMasterAddr, provider.sender().address!);
     
     // Get sender address
     const senderAddr = provider.sender().address;
@@ -31,14 +40,25 @@ export async function run(provider: NetworkProvider) {
     const amount = BigInt(amountStr);
     
     const forwardTonAmount = toNano('0.025'); // 0.025 TON for forward message (must be bigger than required_gas in op::transfer_notification(0.02 TON))
+    const gasAmount = toNano('0.05'); // 0.05 TON for gas
     
-    console.log('\nTransaction details:');
+    console.log('\nTransaction Details');
     console.log('------------------');
-    console.log(`SwapsID: ${swapsId}`);
+    console.log(`Transaction Type: Jetton Transfer`);
+    console.log(`Swaps ID: ${swapsId}`);
     console.log(`Amount: ${amount} nano`);
-    console.log(`Destination: ${destinationAddr.toString()}`);
-    console.log(`Response destination: ${senderAddr.toString()}`);
-    console.log(`Forward TON amount: ${forwardTonAmount} nano`);
+    console.log('\nAddresses:');
+    console.log(`  Sender:        ${senderAddr.toString()}`);
+    console.log(`  Destination:   ${destinationAddr.toString()}`);
+    console.log(`  Response To:   ${senderAddr.toString()}`);
+    console.log(`  Jetton Master: ${jettonMasterAddr.toString()}`);
+    console.log(`  Jetton Wallet: ${jettonWalletAddr.toString()}`);
+    console.log('\nTransaction Parameters:');
+    console.log(`  Forward TON:   ${forwardTonAmount} nano (${Number(forwardTonAmount) / 1e9} TON)`);
+    console.log(`  Gas Allocated: ${gasAmount} nano (${Number(gasAmount) / 1e9} TON)`);
+    console.log('\nAdditional Info:');
+    console.log(`  Network: ${provider.network()}`);
+    console.log('------------------');
     
     // Build the transfer message
     const transferMessage = beginCell()
@@ -51,9 +71,6 @@ export async function run(provider: NetworkProvider) {
         .storeCoins(forwardTonAmount) // forward_ton_amount
         .storeBit(0)                // forward_payload: null
         .endCell();
-    
-    // Calculate gas amount (0.05 TON)
-    const gasAmount = toNano('0.05');
     
     // Confirmation
     const confirm = await ui.choose(
@@ -82,10 +99,11 @@ export async function run(provider: NetworkProvider) {
         console.log('--------------------------------');
         console.log('Transaction details:');
         console.log(`- From (sender): ${senderAddr.toString()}`);
-        console.log(`- To (jetton wallet): ${jettonWalletAddr.toString()}`);
+        console.log(`- Jetton Master: ${jettonMasterAddr.toString()}`);
+        console.log(`- Jetton Wallet: ${jettonWalletAddr.toString()}`);
         console.log(`- Amount: ${amount} nano`);
         console.log(`- Destination: ${destinationAddr.toString()}`);
-        console.log(`- Gas used: ${gasAmount} nanoTON`);
+        console.log(`- Gas sent: ${gasAmount} nanoTON`);
         console.log('\nYou can check the transaction on a TON explorer.');
         
     } catch (error) {
