@@ -1,0 +1,148 @@
+import { NetworkProvider } from '@ton/blueprint';
+import { Address, beginCell, toNano, SendMode, Cell } from '@ton/core';
+import { getJettonWalletAddr } from '../utils/Common';
+import { Op } from '../utils/Constants';
+import { getTonClient } from '../utils/TonClient';
+
+
+export async function run(provider: NetworkProvider) {
+    const ui = provider.ui();
+    
+    console.log('\nJetton Transfer Test Tool');
+    console.log('-------------------------');
+    
+    // Get tonClient
+    const tonClient = getTonClient(provider.network() === 'custom' ? 'mainnet' : 'testnet');
+    
+    // Get Jetton master address
+    const jettonMasterAddr = await ui.inputAddress('Jetton Master address: ');
+    
+    // Destination address (Vault contract)
+    const destinationAddr = await ui.inputAddress('Destination address (Vault contract): ');
+    
+    // Calculate Jetton wallet address
+    const jettonWalletAddr = await getJettonWalletAddr(tonClient, jettonMasterAddr, provider.sender().address!);
+    
+    // Get sender address
+    const senderAddr = provider.sender().address;
+    if (!senderAddr) {
+        throw new Error('Failed to get sender address');
+    }
+    
+    console.log(`\nSender address: ${senderAddr.toString()}`);
+    
+    // Get swaps ID and amount from user input
+    const swapsIdStr = await ui.input('Enter swaps ID (e.g., 123): ');
+    const swapsId = BigInt(swapsIdStr);
+    console.log(`SwapsID: ${swapsId}`);
+    console.log(`SwapsID (hex): 0x${swapsId.toString(16)}`);
+    
+    // Get swaps ID and amount from user input
+    const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
+    const amount = BigInt(amountStr);
+    console.log(`Amount: ${amount} nano`);
+    
+    // Ethereum address input (160-bit)
+    const ethAddrInput = await ui.input('Ethereum address (with 0x): ');
+    // Remove '0x' prefix if present and convert to Buffer
+    const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
+    const ethereumUser = BigInt('0x' + cleanEthAddr);
+    console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
+    
+    // Convert to Buffer for the message
+    const ethereumUserBuffer = Buffer.alloc(20);
+    ethereumUserBuffer.writeBigUInt64BE(ethereumUser >> 96n, 0);
+    ethereumUserBuffer.writeBigUInt64BE((ethereumUser >> 32n) & 0xffffffffn, 8);
+    ethereumUserBuffer.writeUint32BE(Number(ethereumUser & 0xffffffffn), 16);
+    
+    // Deadline input (default: 24 hours from now)
+    const defaultDeadline = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours from now
+    const deadlineInput = await ui.input(`Deadline (UNIX timestamp, default: ${defaultDeadline}): `);
+    const deadline = deadlineInput ? BigInt(deadlineInput) : BigInt(defaultDeadline);
+    console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
+    
+    const forwardTonAmount = toNano('0.025'); // 0.025 TON for forward message (must be bigger than required_gas in op::transfer_notification(0.02 TON))
+    const gasAmount = toNano('0.05'); // 0.05 TON for gas
+    
+    console.log('\nTransaction Details');
+    console.log('------------------');
+    console.log(`Transaction Type: Jetton Transfer`);
+    console.log(`Swaps ID: ${swapsId}`);
+    console.log(`Amount: ${amount} nano`);
+    console.log('\nAddresses:');
+    console.log(`  Sender:        ${senderAddr.toString()}`);
+    console.log(`  Destination:   ${destinationAddr.toString()}`);
+    console.log(`  Response To:   ${senderAddr.toString()}`);
+    console.log(`  Jetton Master: ${jettonMasterAddr.toString()}`);
+    console.log(`  Jetton Wallet: ${jettonWalletAddr.toString()}`);
+    console.log('\nTransaction Parameters:');
+    console.log(`  Forward TON:   ${forwardTonAmount} nano (${Number(forwardTonAmount) / 1e9} TON)`);
+    console.log(`  Gas Allocated: ${gasAmount} nano (${Number(gasAmount) / 1e9} TON)`);
+    console.log('\nCustom Payload:');
+    console.log(`  Ethereum User: 0x${ethereumUser.toString(16)}`);
+    console.log(`  TON User: ${senderAddr.toString()}`);
+    console.log(`  Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
+    console.log('\nAdditional Info:');
+    console.log(`  Network: ${provider.network()}`);
+    console.log('------------------');
+    
+    // Build forward payload
+    const forwardPayload = beginCell()
+        .storeUint(Op.register_deposit, 32) // op::register_deposit
+        .storeBuffer(ethereumUserBuffer)    // ethereum_user (160 bits)
+        .storeAddress(senderAddr)           // ton_user (using sender address)
+        .storeUint(deadline, 64)            // deadline (64 bits)
+        .endCell();
+    
+    // Build the transfer message
+    const transferMessage = beginCell()
+        .storeUint(Op.transfer, 32) // transfer opcode from Constants
+        .storeUint(swapsId, 64)    // swaps_id
+        .storeCoins(amount)        // amount
+        .storeAddress(destinationAddr) // destination
+        .storeAddress(senderAddr)      // response_destination (sender)
+        .storeBit(0)                // custom_payload: null
+        .storeCoins(forwardTonAmount) // forward_ton_amount
+        .storeBit(1)                // forward_payload exists
+        .storeRef(forwardPayload)     // forward_payload with ethereum_user, ton_user, deadline
+        .endCell();
+    
+    // Confirmation
+    const confirm = await ui.choose(
+        '\nSend Jetton transfer?',
+        ['Yes', 'No'],
+        (v) => v
+    );
+    
+    if (confirm === 'No') {
+        console.log('Operation cancelled');
+        return;
+    }
+    
+    // Send the transfer message
+    try {
+        console.log('\nSending Jetton transfer...');
+        
+        await provider.sender().send({
+            to: jettonWalletAddr,
+            value: gasAmount,
+            body: transferMessage,
+            sendMode: SendMode.PAY_GAS_SEPARATELY // pay fees separately (DeployerSender only supports this mode)
+        });
+        
+        console.log('\nJetton transfer sent successfully!');
+        console.log('--------------------------------');
+        console.log('Transaction details:');
+        console.log(`- From (sender): ${senderAddr.toString()}`);
+        console.log(`- Jetton Master: ${jettonMasterAddr.toString()}`);
+        console.log(`- Jetton Wallet: ${jettonWalletAddr.toString()}`);
+        console.log(`- Amount: ${amount} nano`);
+        console.log(`- Destination: ${destinationAddr.toString()}`);
+        console.log(`- Gas sent: ${gasAmount} nanoTON`);
+        console.log('\nYou can check the transaction on a TON explorer.');
+        
+    } catch (error) {
+        console.error('\nError sending Jetton transfer:');
+        console.error(error instanceof Error ? error.message : String(error));
+    }
+}

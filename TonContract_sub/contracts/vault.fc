@@ -73,8 +73,20 @@
         slice sender_address = in_msg_body~load_msg_addr(); ;; address which sent jetton
         cell custom_payload = in_msg_body~load_maybe_ref();
         
+        int ethereum_user = 0;
+        slice ton_user = sender_address;  ;; Default to sender address if not provided
+        int deadline = 0;
+        
+        ;; Parse custom_payload if it exists
+        if (~ custom_payload.null?()) {
+            slice payload_slice = custom_payload.begin_parse();
+            ethereum_user = payload_slice~load_uint(160);  ;; Ethereum address (160 bits)
+            ton_user = payload_slice~load_msg_addr();      ;; TON address (MsgAddress)
+            deadline = payload_slice~load_uint(64);        ;; Deadline (64 bits)
+        }
+        
         ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(swap_id, 0, sender_address, amount, now(), 0, 0);
+        update_swaps_info(swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
         
         save_storage();
         return ();
@@ -191,8 +203,6 @@
         send_raw_message(msg.store_maybe_ref(included_address).end_cell(), 64);
         return ();
     }
-
-
     throw(er::wrong_op());
 }
 
