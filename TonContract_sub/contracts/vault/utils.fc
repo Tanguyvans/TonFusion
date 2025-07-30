@@ -24,8 +24,6 @@ int gas_excess_return_consumption() asm "5000000 PUSHINT";
 ;; Gas consumption for jetton transfer message (0.05 TON)
 int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 
-
-
 ;; Function to update swaps dict
 () update_swaps_info(int swap_id, int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) impure {
     storage::dict_swaps_info~udict_set_builder(
@@ -60,31 +58,4 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
         return (ethereum_user, ton_user, amount, creation_timestamp, deadline, status);
     }
     return (0, null(), 0, 0, 0, 0);
-}
-
-() send_jetton(
-    int swap_id,
-    slice jetton_wallet_address,
-    int gas,
-    int jetton_amount,
-    slice to_address
-) impure {
-    cell body = begin_cell()
-        .store_uint(op::transfer(), 32)
-        .store_uint(swap_id, 64)
-        .store_coins(jetton_amount)
-        .store_slice(to_address)
-        .store_slice(to_address)
-        .store_uint(0, 1)
-        .store_coins(0)
-        .store_uint(0, 1)
-        .end_cell();
-    cell msg = begin_cell()
-        .store_uint(0x18, 6)
-        .store_slice(jetton_wallet_address)
-        .store_coins(gas)
-        .store_uint(1, 107)
-        .store_ref(body)
-        .end_cell();
-    send_raw_message(msg, 0);
 }
