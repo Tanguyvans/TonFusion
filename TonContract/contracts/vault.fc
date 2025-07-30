@@ -79,6 +79,57 @@
         save_storage();
         return ();
     }
+    
+    if (op == op::withdraw_jetton()) {
+        ;; コントラクトが停止していないことを確認
+        throw_unless(er::vault_is_stopped(), storage::stopped != -1);
+        
+        ;; 十分なTONが送金されていることを確認 (0.05 TON)
+        throw_unless(er::insufficient_gas(), msg_value >= 50000000);
+        
+        ;; パラメータをロード
+        slice to_address = in_msg_body~load_msg_addr();  ;; 送信先アドレス
+        int amount = in_msg_body~load_coins();           ;; 送信量
+        
+        ;; Jettonウォレットに0.03 TONを送金
+        send_raw_message(
+            begin_cell()
+                .store_uint(0x18, 6)  ;; bounce
+                .store_slice(storage::jetton_wallet)  ;; 送信先アドレス
+                .store_coins(30000000)  ;; 0.03 TON
+                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)  ;; デフォルト値
+                .store_uint(0, 32)  ;; op = 0 (simple transfer)
+            .end_cell(),
+            1  ;; 送信モード
+        );
+        
+        ;; Jettonウォレットから送信するメッセージを作成
+        var msg = begin_cell()
+            .store_uint(0xf8a7ea5, 32)  ;; transfer op
+            .store_uint(0, 64)           ;; query_id
+            .store_coins(amount)         ;; amount
+            .store_slice(to_address)     ;; destination
+            .store_slice(sender_address) ;; response_destination (お釣りを返すアドレス)
+            .store_int(0, 1)             ;; custom payload (empty)
+            .store_coins(1)              ;; forward_ton_amount (minimum amount)
+            .store_int(0, 1)             ;; forward_payload (empty)
+            .end_cell();
+        
+        ;; Jettonウォレットにメッセージを送信
+        send_raw_message(
+            begin_cell()
+                .store_uint(0x18, 6)  ;; bounce
+                .store_slice(storage::jetton_wallet)  ;; 送信元アドレス
+                .store_coins(0)       ;; 送信するTON量
+                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)  ;; デフォルト値
+                .store_uint(0xf8a7ea5, 32)  ;; transfer_notification op
+                .store_ref(msg)             ;; 転送メッセージ
+            .end_cell(),
+            1  ;; 送信モード
+        );
+        
+        return ();
+    }
 
     if (op == op::change_vault_data()) {
         throw_unless(er::not_admin(), equal_slices(sender_address, storage::admin_address));
@@ -148,44 +199,6 @@
         return ();
     }
 
-    if (op == op::withdraw_jetton()) {
-        ;; コントラクトが停止していないことを確認
-        throw_unless(er::vault_is_stopped(), storage::stopped != -1);
-        
-        ;; 管理者のみが実行可能
-        ;; throw_unless(er::not_admin(), equal_slices(sender_address, storage::admin_address));
-        
-        ;; パラメータをロード
-        slice to_address = in_msg_body~load_msg_addr();  ;; 送信先アドレス
-        int amount = in_msg_body~load_coins();           ;; 送信量
-        
-        ;; Jettonウォレットから送信するメッセージを作成
-        var msg = begin_cell()
-            .store_uint(0xf8a7ea5, 32)  ;; transfer op
-            .store_uint(0, 64)           ;; query_id
-            .store_coins(amount)         ;; amount
-            .store_slice(to_address)     ;; destination
-            .store_slice(sender_address) ;; response_destination (お釣りを返すアドレス)
-            .store_int(0, 1)             ;; custom payload (empty)
-            .store_coins(1)              ;; forward_ton_amount (minimum amount)
-            .store_int(0, 1)             ;; forward_payload (empty)
-            .end_cell();
-        
-        ;; Jettonウォレットにメッセージを送信
-        send_raw_message(
-            begin_cell()
-                .store_uint(0x18, 6)  ;; bounce
-                .store_slice(storage::jetton_wallet)  ;; 送信元アドレス
-                .store_coins(0)       ;; 送信するTON量
-                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)  ;; デフォルト値
-                .store_uint(0xf8a7ea5, 32)  ;; transfer_notification op
-                .store_ref(msg)             ;; 転送メッセージ
-            .end_cell(),
-            1  ;; 送信モード
-        );
-        
-        return ();
-    }
 
     throw(er::wrong_op());
 }
