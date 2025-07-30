@@ -42,23 +42,16 @@ export async function run(provider: NetworkProvider) {
     const amount = BigInt(amountStr);
     console.log(`Amount: ${amount} nano`);
     
-    // Ethereum address input (160-bit)
-    const ethAddrInput = await ui.input('Ethereum address (with 0x): ');
-    // Remove '0x' prefix if present and convert to Buffer
-    const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
-    const ethereumUser = BigInt('0x' + cleanEthAddr);
-    console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
+    // Fixed Ethereum address
+    const sampleEthAddr = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+    const ethereumUser = BigInt(sampleEthAddr);
+    console.log(`Ethereum user: ${sampleEthAddr}`);
     
     // Convert to Buffer for the message
-    const ethereumUserBuffer = Buffer.alloc(20);
-    ethereumUserBuffer.writeBigUInt64BE(ethereumUser >> 96n, 0);
-    ethereumUserBuffer.writeBigUInt64BE((ethereumUser >> 32n) & 0xffffffffn, 8);
-    ethereumUserBuffer.writeUint32BE(Number(ethereumUser & 0xffffffffn), 16);
+    const ethereumUserBuffer = Buffer.from('d8dA6BF26964aF9D7eEd9e03E53415D37aA96045', 'hex');
     
-    // Deadline input (default: 24 hours from now)
-    const defaultDeadline = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours from now
-    const deadlineInput = await ui.input(`Deadline (UNIX timestamp, default: ${defaultDeadline}): `);
-    const deadline = deadlineInput ? BigInt(deadlineInput) : BigInt(defaultDeadline);
+    // Fixed Deadline (24 hours from now)
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + (24 * 60 * 60));
     console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
     
     const forwardTonAmount = toNano('0.025'); // 0.025 TON for forward message (must be bigger than required_gas in op::transfer_notification(0.02 TON))
