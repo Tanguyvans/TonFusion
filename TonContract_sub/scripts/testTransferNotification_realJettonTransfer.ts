@@ -35,9 +35,8 @@ export async function run(provider: NetworkProvider) {
     const swapsIdStr = await ui.input('Enter swaps ID (e.g., 123): ');
     const swapsId = BigInt(swapsIdStr);
     console.log(`SwapsID: ${swapsId}`);
-    console.log(`SwapsID (hex): 0x${swapsId.toString(16)}`);
     
-    // Get swaps ID and amount from user input
+    // Get amount from user input
     const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
     const amount = BigInt(amountStr);
     console.log(`Amount: ${amount} nano`);

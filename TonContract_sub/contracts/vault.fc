@@ -117,6 +117,7 @@
         (int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(swap_id);
         throw_unless(er::invalid_swap_id(), ethereum_user != 0);
         throw_unless(er::invalid_swap_status(), status == 0);
+        throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
         
         ;; Create jetton transfer message body
         cell transfer_body = begin_cell()
