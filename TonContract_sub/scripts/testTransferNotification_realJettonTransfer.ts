@@ -141,8 +141,9 @@ export async function run(provider: NetworkProvider) {
         console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
         console.log(`   - The third value is ${senderAddr.toString()} (TON address)`);
         console.log(`   - The fourth value is ${amount} (amount in nanoTON)`);
-        console.log(`   - The fifth value is ${deadline} (deadline as UNIX timestamp)`);
-        console.log('   - The sixth value is 0 (status: 0=init, 1=completed, 2=refunded)');
+        console.log('   - The fifth value is <creation_timestamp> (creation timestamp)');
+        console.log(`   - The sixth value is ${deadline} (deadline as UNIX timestamp)`);
+        console.log('   - The seventh value is 0 (status: 0=init, 1=completed, 2=refunded)');
         
     } catch (error) {
         console.error('\nError sending Jetton transfer:');
