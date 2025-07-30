@@ -1,0 +1,115 @@
+import { NetworkProvider } from '@ton/blueprint';
+import { Address, beginCell, toNano } from '@ton/core';
+import { Vault } from '../wrappers/Vault';
+import { Op } from '../utils/Constants';
+
+export async function run(provider: NetworkProvider) {
+    const ui = provider.ui();
+    
+    console.log('\nVault Transfer Notification Test Tool');
+    console.log('-------------------------------');
+    
+    // Vault address input
+    const vaultAddr = await ui.inputAddress('Vault address: ');
+    const vault = provider.open(Vault.createFromAddress(vaultAddr));
+    
+    // SwapsID input
+    const input = await ui.input('SwapsID to input (decimal): ');
+    const swapsId = BigInt(input);
+    console.log(`SwapsID: ${swapsId}`);
+    console.log(`SwapsID (hex): 0x${swapsId.toString(16)}`);
+    
+    // User address input
+    let userAddr: Address;
+    const senderAddr = provider.sender().address;
+    if (senderAddr) {
+        userAddr = senderAddr;
+        console.log(`TON user address: ${userAddr.toString()}`);
+    } else {
+        throw new Error('Failed to get sender address');
+    }
+
+    // Ethereum address input (160-bit)
+    const ethAddrInput = await ui.input('Ethereum address (with 0x): ');
+    // Remove '0x' prefix if present and convert to BigInt
+    const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
+    const ethereumUser = BigInt('0x' + cleanEthAddr);
+    console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
+
+    // Amount input
+    const amountInput = await ui.input('Amount to deposit (in TON): ');
+    const amount = toNano(amountInput);
+    console.log(`Amount: ${amount} nanoTON (${Number(amount) / 1e9} TON)`);
+
+    // Deadline input (default: 24 hours from now)
+    const defaultDeadline = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours from now
+    const deadlineInput = await ui.input(`Deadline (UNIX timestamp, default: ${defaultDeadline}): `);
+    const deadline = deadlineInput ? BigInt(deadlineInput) : BigInt(defaultDeadline);
+    console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
+
+    // Gas amount
+    const gasAmount = toNano('0.05'); // 0.05 TON = 50,000,000 nanoTON
+    console.log(`Gas amount: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
+    
+    // Prepare custom payload with additional data
+    const customPayload = beginCell()
+        .storeUint(ethereumUser, 160)       // ethereum_user (160-bit)
+        .storeUint(deadline, 64)            // deadline (UNIX timestamp, 64-bit)
+        .endCell();
+    
+    // Message construction
+    const message = beginCell()
+        .storeUint(Op.transfer_notification, 32) // op::transfer_notification()
+        .storeUint(swapsId, 64)             // swap_id (64-bit)
+        .storeCoins(amount)                 // amount (coins)
+        .storeAddress(provider.sender().address!) // sender_address (MsgAddress)
+        .storeMaybeRef(customPayload)       // custom_payload (optional cell)
+        .endCell();
+    
+    console.log('\nMessage details to send:');
+    console.log(`Op code: 0x${Op.transfer_notification.toString(16)} (transfer_notification)`);
+    console.log(`Amount: ${amount} nanoTON (${Number(amount) / 1e9} TON)`);
+    console.log(`Sender address: ${provider.sender().address!.toString()}`);
+    console.log(`Custom payload (SwapsID): ${swapsId}`);
+    console.log(`Custom payload (Ethereum user): 0x${ethereumUser.toString(16)}`);
+    console.log(`Custom payload (Deadline): ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
+    console.log(`Gas amount: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
+    
+    // Confirmation
+    const confirm = await ui.choose(
+        '\nSend message?',
+        ['Yes', 'No'],
+        (v) => v
+    );
+    
+    if (confirm === 'No') {
+        console.log('Operation cancelled');
+        return;
+    }
+    
+    // Message sending
+    try {
+        console.log('\nSending message...');
+        
+        // Internal message sending
+        await provider.sender().send({
+            to: vaultAddr,
+            value: gasAmount,
+            body: message
+        });
+        
+        console.log('Message sent successfully!');
+        console.log('You can confirm the transaction on Tonviewer');
+        console.log('\nConfirmation method after sending:');
+        console.log(`1. Tonviewer: get_swaps_info_debug(${swapsId})`);
+        console.log('2. The result should be as follows:');
+        console.log('   - The first value is -0x1 (found)');
+        console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
+        console.log(`   - The third value is ${userAddr.toString()} (TON address)`);
+        console.log(`   - The fourth value is ${amount} (amount in nanoTON)`);
+        console.log(`   - The fifth value is ${deadline} (deadline as UNIX timestamp)`);
+        console.log('   - The sixth value is 0 (status: 0=init, 1=completed, 2=refunded)');
+    } catch (error) {
+        console.error('Error sending message:', error instanceof Error ? error.message : String(error));
+    }
+}

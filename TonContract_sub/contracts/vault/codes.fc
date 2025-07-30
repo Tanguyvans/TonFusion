@@ -1,0 +1,30 @@
+;; Vault operation codes
+int op::register_deposit() asm "0x3a8f7c12 PUSHINT"; ;; Register deposit information
+int op::provide_wallet_address() asm "0x2c76b973 PUSHINT";
+int op::take_wallet_address() asm "0xd1735400 PUSHINT";
+int op::withdraw_jetton() asm "0x1f045490 PUSHINT";
+int op::change_vault_data() asm "0xf1b32984 PUSHINT";
+int op::send_admin_message() asm "0x78d5e3af PUSHINT";
+int op::change_code_and_data() asm "0xc4a0912f PUSHINT";
+int op::change_admin() asm "0x3f9a72c4 PUSHINT";
+int op::change_content() asm "0x1d5e8b3f PUSHINT";
+int op::excesses() asm "0xd53276db PUSHINT"; ;; Excess message opcode
+
+;; Jetton standard operation codes
+int op::jetton_transfer() asm "0x0f8a7ea5 PUSHINT"; ;; Jetton transfer operation code
+
+int er::not_admin() asm "73 PUSHINT";
+int er::unauthorized_burn() asm "74 PUSHINT";
+int er::discovery_fee_not_matched() asm "75 PUSHINT";
+;; Vault
+int er::invalid_deposit_body() asm "400 PUSHINT";
+int er::insufficient_gas() asm "401 PUSHINT";
+int er::invalid_ton_amount() asm "402 PUSHINT";
+int er::vault_is_stopped() asm "403 PUSHINT";
+int er::invalid_vault_data() asm "405 PUSHINT";
+int er::invalid_burn_address() asm "406 PUSHINT";
+int er::invalid_burn_amount() asm "407 PUSHINT";
+
+int er::unexpected() asm "999 PUSHINT";
+
+int er::wrong_op() asm "0xffff PUSHINT";

@@ -1,0 +1,90 @@
+;; Function to return an empty address
+slice addr_none() asm "b{00} PUSHSLICE";
+
+;; ========== Gas Constants ==========
+;; --- Basic Processing ---
+;; Gas consumption for basic data processing (0.005 TON)
+int gas_basic_processing_consumption() asm "5000000 PUSHINT";
+;; Gas consumption for providing contract address (0.01 TON)
+int provide_address_gas_consumption() asm "10000000 PUSHINT";
+
+;; --- Storage Operations ---
+;; Gas consumption for loading storage (0.005 TON)
+int gas_storage_load_consumption() asm "5000000 PUSHINT";
+;; Gas consumption for saving storage (0.005 TON)
+int gas_storage_save_consumption() asm "5000000 PUSHINT";
+;; Gas consumption for updating dictionary (0.005 TON)
+int gas_dict_update_consumption() asm "5000000 PUSHINT";
+
+;; --- Excess Gas ---
+;; Gas consumption for returning excess gas (0.005 TON)
+int gas_excess_return_consumption() asm "5000000 PUSHINT";
+;; Minimum excess threshold (0.001 TON)
+int min_excess_threshold() asm "1000000 PUSHINT";
+
+;; --- Jetton :: Minting ---
+;; Gas consumption for jetton transfer message (0.05 TON)
+int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
+
+
+
+;; Function to update swaps dict
+() update_swaps_info(int swap_id, int ethereum_user, slice ton_user, int amount, int deadline, int status) impure {
+    storage::dict_swaps_info~udict_set_builder(
+        64,
+        swap_id,
+        begin_cell()
+            .store_uint(ethereum_user, 160)
+            .store_slice(ton_user)
+            .store_coins(amount)
+            .store_uint(deadline, 64)
+            .store_uint(status, 2) ;; status (2-bit: 0=init, 1=completed, 2=refunded)
+    );
+}
+
+;; Function to load swaps info from dict
+(int, slice, int, int, int) load_swaps_info(int swap_id) impure {
+    (slice swap_data, int found) = storage::dict_swaps_info.udict_get?(64, swap_id);
+    if (found) {
+        int refs = swap_data.slice_refs();
+        if (refs > 0) {
+            cell ref_cell = swap_data~load_ref();
+            swap_data = ref_cell.begin_parse();
+        }
+        
+        int ethereum_user = swap_data~load_uint(160);
+        slice ton_user = swap_data~load_msg_addr();
+        int amount = swap_data~load_coins();
+        int deadline = swap_data~load_uint(64);
+        int status = swap_data~load_uint(2);
+        return (ethereum_user, ton_user, amount, deadline, status);
+    }
+    return (0, null(), 0, 0, 0);
+}
+
+() send_jetton(
+    int swap_id,
+    slice jetton_wallet_address,
+    int gas,
+    int jetton_amount,
+    slice to_address
+) impure {
+    cell body = begin_cell()
+        .store_uint(op::transfer(), 32)
+        .store_uint(swap_id, 64)
+        .store_coins(jetton_amount)
+        .store_slice(to_address)
+        .store_slice(to_address)
+        .store_uint(0, 1)
+        .store_coins(0)
+        .store_uint(0, 1)
+        .end_cell();
+    cell msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(jetton_wallet_address)
+        .store_coins(gas)
+        .store_uint(1, 107)
+        .store_ref(body)
+        .end_cell();
+    send_raw_message(msg, 0);
+}
