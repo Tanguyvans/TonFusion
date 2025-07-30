@@ -66,7 +66,7 @@
                 gas_storage_save_consumption();       ;;（0.005 TON）: Total: 0.02 TON
 
         ;; Check if the required gas is available
-        ;; throw_unless(er::insufficient_gas(), msg_value >= required_gas);
+        throw_unless(er::insufficient_gas(), msg_value >= required_gas);
         
         ;; Get parameters
         int amount = in_msg_body~load_coins();           ;; Amount to deposit
@@ -81,52 +81,45 @@
     }
     
     if (op == op::withdraw_jetton()) {
-        ;; コントラクトが停止していないことを確認
+        ;; Check if the contract is stopped
         throw_unless(er::vault_is_stopped(), storage::stopped != -1);
+
+        ;; Calculate required gas
+        int required_gas = gas_storage_load_consumption() + ;; 0.005 TON
+                        gas_dict_update_consumption() + ;; 0.005 TON
+                        gas_storage_save_consumption() + ;; 0.005 TON
+                        gas_jetton_transfer_consumption(); ;; 0.05 TON Total: 0.065 TON
         
-        ;; 十分なTONが送金されていることを確認 (0.05 TON)
-        throw_unless(er::insufficient_gas(), msg_value >= 50000000);
+        ;; Check if the required gas is available
+        throw_unless(er::insufficient_gas(), msg_value >= required_gas);
         
-        ;; パラメータをロード
-        slice to_address = in_msg_body~load_msg_addr();  ;; 送信先アドレス
-        int amount = in_msg_body~load_coins();           ;; 送信量
+        ;; Load parameters
+        slice to_address = in_msg_body~load_msg_addr();  ;; To address
+        int amount = in_msg_body~load_coins();           ;; Amount
         
-        ;; Jettonウォレットに0.03 TONを送金
-        send_raw_message(
-            begin_cell()
-                .store_uint(0x18, 6)  ;; bounce
-                .store_slice(storage::jetton_wallet)  ;; 送信先アドレス
-                .store_coins(30000000)  ;; 0.03 TON
-                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)  ;; デフォルト値
-                .store_uint(0, 32)  ;; op = 0 (simple transfer)
-            .end_cell(),
-            1  ;; 送信モード
-        );
-        
-        ;; Jettonウォレットから送信するメッセージを作成
-        var msg = begin_cell()
-            .store_uint(0xf8a7ea5, 32)  ;; transfer op
-            .store_uint(0, 64)           ;; query_id
-            .store_coins(amount)         ;; amount
-            .store_slice(to_address)     ;; destination
-            .store_slice(sender_address) ;; response_destination (お釣りを返すアドレス)
-            .store_int(0, 1)             ;; custom payload (empty)
-            .store_coins(1)              ;; forward_ton_amount (minimum amount)
-            .store_int(0, 1)             ;; forward_payload (empty)
+        ;; Create jetton transfer message body
+        cell transfer_body = begin_cell()
+            .store_uint(op::jetton_transfer(), 32)  ;; Jetton transfer operation code
+            .store_uint(swap_id, 64)               ;; query_id
+            .store_coins(amount)                   ;; Amount
+            .store_slice(to_address)               ;; To address
+            .store_slice(sender_address)           ;; Response address
+            .store_uint(0, 1)                      ;; custom_payload is empty
+            .store_coins(0)                        ;; forward_ton_amount: 0 nanoTON
+            .store_uint(0, 1)                      ;; forward_payload is empty
             .end_cell();
         
-        ;; Jettonウォレットにメッセージを送信
-        send_raw_message(
-            begin_cell()
-                .store_uint(0x18, 6)  ;; bounce
-                .store_slice(storage::jetton_wallet)  ;; 送信元アドレス
-                .store_coins(0)       ;; 送信するTON量
-                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)  ;; デフォルト値
-                .store_uint(0xf8a7ea5, 32)  ;; transfer_notification op
-                .store_ref(msg)             ;; 転送メッセージ
-            .end_cell(),
-            1  ;; 送信モード
-        );
+        ;; Jetton wallet message
+        cell msg = begin_cell()
+            .store_uint(0x18, 6)                  ;; Flag
+            .store_slice(storage::jetton_wallet)   ;; Send to Vault's Jetton wallet
+            .store_coins(gas_jetton_transfer_consumption())                       ;; Send TON amount (Jetton wallet pays for gas)
+            .store_uint(1, 107)                   ;; Default value
+            .store_ref(transfer_body)             ;; Transfer message body
+            .end_cell();
+        
+        ;; Send message
+        send_raw_message(msg, 1);  ;; Mode 1
         
         return ();
     }

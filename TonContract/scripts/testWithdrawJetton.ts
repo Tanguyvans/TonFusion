@@ -38,6 +38,7 @@ export async function run(provider: NetworkProvider) {
         // Build the message
         const messageBody = beginCell()
             .storeUint(Op.withdraw_jetton, 32)  // op code
+            .storeUint(123n, 64)                // query_id
             .storeAddress(recipientAddr)         // to_address
             .storeCoins(amount)                  // amount
             .endCell();
