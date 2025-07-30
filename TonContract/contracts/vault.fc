@@ -33,21 +33,47 @@
         ;; Check if the contract is stopped
         throw_unless(er::vault_is_stopped(), storage::stopped != -1);
         
-        ;; Get deposit parameters
+        ;; Calculate gas - register_deposit operation only
+        int required_gas = gas_basic_processing_consumption() + ;;（0.005 TON）
+                gas_storage_load_consumption() +      ;;（0.005 TON）
+                gas_dict_update_consumption() +       ;;（0.005 TON）
+                gas_storage_save_consumption();       ;;（0.005 TON）: Total: 0.02 TON
+
+        ;; Check if the required gas is available
+        throw_unless(er::insufficient_gas(), msg_value >= required_gas);
+        
+        ;; Get parameters
         int ethereum_user = in_msg_body~load_uint(160);  ;; Ethereum address (160-bit)
         slice ton_user = in_msg_body~load_msg_addr();    ;; TON address (MsgAddress)
         int amount = in_msg_body~load_coins();           ;; Amount to deposit
         int deadline = in_msg_body~load_uint(64);        ;; Deadline (UNIX timestamp)
         
-        ;; Calculate gas - register_deposit operation only
-        int required_gas = gas_basic_processing_consumption() + ;;（0.005 TON）
-                         gas_storage_load_consumption() +      ;;（0.005 TON）
-                         gas_dict_update_consumption() +       ;;（0.005 TON）
-                         gas_storage_save_consumption();       ;;（0.005 TON）: Total: 0.02 TON
+        ;; Register SwapsInfoID with initial status=0 (init)
+        update_swaps_info(swap_id, ethereum_user, ton_user, amount, deadline, 0);
         
+        save_storage();
+        return ();
+    }
+
+    if (op == op::transfer_notification()) {
+        ;; Check if the contract is stopped
+        throw_unless(er::vault_is_stopped(), storage::stopped != -1);
+        
+        ;; Calculate gas 
+        int required_gas = gas_basic_processing_consumption() + ;;（0.005 TON）
+                gas_storage_load_consumption() +      ;;（0.005 TON）
+                gas_dict_update_consumption() +       ;;（0.005 TON）
+                gas_storage_save_consumption();       ;;（0.005 TON）: Total: 0.02 TON
+
         ;; Check if the required gas is available
         throw_unless(er::insufficient_gas(), msg_value >= required_gas);
-    
+        
+        ;; Get parameters
+        int ethereum_user = in_msg_body~load_uint(160);  ;; Ethereum address (160-bit)
+        slice ton_user = in_msg_body~load_msg_addr();    ;; TON address (MsgAddress)
+        int amount = in_msg_body~load_coins();           ;; Amount to deposit
+        int deadline = in_msg_body~load_uint(64);        ;; Deadline (UNIX timestamp)
+        
         ;; Register SwapsInfoID with initial status=0 (init)
         update_swaps_info(swap_id, ethereum_user, ton_user, amount, deadline, 0);
         
