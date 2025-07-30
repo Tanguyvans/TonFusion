@@ -87,13 +87,12 @@
                 ethereum_user = payload_slice~load_uint(160);  ;; Ethereum address (160 bits)
                 ton_user = payload_slice~load_msg_addr();      ;; TON address (MsgAddress)
                 deadline = payload_slice~load_uint(64);        ;; Deadline (64 bits)
+                
+                ;; Only update storage if forward_payload is valid
+                update_swaps_info(swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
+                save_storage();
             }
         }
-        
-        ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
-        
-        save_storage();
         return ();
     }
     
