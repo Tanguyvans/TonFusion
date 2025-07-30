@@ -1,41 +1,55 @@
 # Ton Fusion
 
-## Project structure
+## Project Structure
 
--   `contracts` - source code of all the smart contracts of the project and their dependencies.
--   `wrappers` - wrapper classes (implementing `Contract` from ton-core) for the contracts, including any [de]serialization primitives and compilation functions.
--   `tests` - tests for the contracts.
--   `scripts` - scripts used by the project, mainly the deployment scripts.
+- `contracts`: Source code of all smart contracts and their dependencies
+- `wrappers`: Wrapper classes implementing `Contract` from ton-core, including serialization primitives and compilation functions
+- `tests`: Tests for the contracts
+- `scripts`: Scripts used by the project, mainly deployment scripts
 
-## How to use
+## How to Use
+
+### Package install
+```bash
+npm install
+```
 
 ### Build
-`npx blueprint build`
-> ? Choose file to use: Vault
+```bash
+npx blueprint build
+```
+- Choose file to use: Vault
 
-### Test(Not implemented)
-`npx blueprint test`
+### Test (Not Implemented)
+```bash
+npx blueprint test
+```
 
-### Deploy & initiate
-`npx blueprint run`
-Step1: deployVault
-Step2: initVault
-- Vault contract address: the address of the vault contract deployed in Step1: deployVault 
+### Deploy & Initiate
+```bash
+npx blueprint run
+```
+1. Deploy Vault
+2. Init Vault
+   - Vault contract address: Address of the vault deployed in step 1
 
-### Test vault operations by scripts
-`npx blueprint run`
-Step1: testTransferNotification_realJettonTransfer
-    - Jetton Master address: kQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPsyy (USDT on testnet)
-    - Destination address (Vault contract): the address of the vault contract deployed in Deploy & initiate
-    * make sure your wallet has enough USDT for transfer and TON for gas.
-    * 1000000 nano = 1 USDT (decimals =6), 1 TON = 1000000000 nano (decimals =9)
-    
-Step2: testWithdrawJetton
-    - Vault contract address: the address of the vault contract deployed in Deploy & initiate
-    - Recipient address (to receive Jettons): your wallet address
+### Test Vault Operations by Scripts
+```bash
+npx blueprint run
+```
+1. testTransferNotification_realJettonTransfer
+   - Jetton Master address: kQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPsyy (USDT on testnet)
+   - Destination address (Vault contract): Address of the vault deployed in Deploy & Initiate
+   > Note: Ensure your wallet has enough USDT for transfer and TON for gas.
+   > 1000000 nano = 1 USDT (decimals = 6), 1 TON = 1000000000 nano (decimals = 9)
 
-Sample vault address:
-https://testnet.tonviewer.com/kQDT_l6aeZu1JrKQvN2SEatwsl6dIvwTscWk8HtZdEpVUWBH
+2. testWithdrawJetton
+   - Vault contract address: Address of the vault deployed in Deploy & Initiate
+   - Recipient address (to receive Jettons): Your wallet address
+
+### Sample Vault Address
+[https://testnet.tonviewer.com/kQDT_l6aeZu1JrKQvN2SEatwsl6dIvwTscWk8HtZdEpVUWBH](https://testnet.tonviewer.com/kQDT_l6aeZu1JrKQvN2SEatwsl6dIvwTscWk8HtZdEpVUWBH)
+
 
 
 
