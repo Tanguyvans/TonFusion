@@ -36,12 +36,12 @@ export async function run(provider: NetworkProvider) {
         throw new Error('Failed to get sender address');
     }
 
-    // Ethereum address input (160-bit)
-    const ethAddrInput = await ui.input('Ethereum address (with 0x): ');
+    // Maker's Ethereum address input (160-bit)
+    const ethAddrInput = await ui.input("Ethereum address (with 0x): ");
     // Remove '0x' prefix if present and convert to BigInt
     const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
-    const ethereumUser = BigInt('0x' + cleanEthAddr);
-    console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
+    const ethAddr = BigInt('0x' + cleanEthAddr);
+    console.log(`Ethereum address: 0x${ethAddr.toString(16)}`);
 
     // Amount input (nano)
     const amountInput = await ui.input('Amount to deposit (in nano): ');
@@ -62,8 +62,8 @@ export async function run(provider: NetworkProvider) {
         .storeUint(Op.register_deposit, 32) // op::register_deposit()
         .storeUint(queryId, 64)             // query_id (64-bit)
         .storeUint(swapId, 256)             // swap_id (256-bit)
-        .storeUint(ethereumUser, 160)       // ethereum_user (160-bit)
-        .storeAddress(userAddr)             // ton_user (MsgAddress)
+        .storeUint(ethAddr, 160)       // ethAddr (160-bit)
+        .storeAddress(userAddr)             // tonAddr (MsgAddress)
         .storeCoins(amount)                 // amount (coins)
         .storeUint(deadline, 64)            // deadline (UNIX timestamp, 64-bit)
         .endCell();
@@ -72,8 +72,8 @@ export async function run(provider: NetworkProvider) {
     console.log(`Op code: 0x${Op.register_deposit.toString(16)} (register_deposit)`);
     console.log(`Query ID: ${queryId}`);
     console.log(`Swap ID: ${swapId}`);
-    console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
-    console.log(`TON user address: ${userAddr.toString()}`);
+    console.log(`Ethereum address: 0x${ethAddr.toString(16)}`);
+    console.log(`TON address: ${userAddr.toString()}`);
     console.log(`Amount: ${amount} nanoUSDT (${Number(amount) / 1e6} USDT)`);
     console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
     console.log(`Gas amount: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
@@ -108,7 +108,7 @@ export async function run(provider: NetworkProvider) {
         console.log('2. The result should be as follows:');
         console.log('   - The first value is -0x1 (found)');
         console.log(`   - The second value is 0x${hexString} (Swap ID, 256bit hex)`);
-        console.log(`   - The third value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
+        console.log(`   - The third value is 0x${ethAddr.toString(16)} (Ethereum address)`);
         console.log(`   - The fourth value is ${userAddr.toString()} (TON address)`);
         console.log(`   - The fifth value is ${amount} (amount in nanoUSDT)`);
         console.log('   - The sixth value is <creation_timestamp> (creation timestamp)');

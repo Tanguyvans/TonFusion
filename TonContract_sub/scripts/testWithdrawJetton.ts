@@ -48,11 +48,11 @@ export async function run(provider: NetworkProvider) {
         
         // Build the message (send secret as cell)
         const messageBody = beginCell()
-            .storeUint(Op.withdraw_jetton, 32)  // op code
-            .storeUint(queryId, 64)             // query_id
-            .storeAddress(recipientAddr)        // to_address
-            .storeCoins(amount)                 // amount
-            .storeRef(secretCell)               // secret as cell (ref)
+            .storeUint(Op.withdraw_jetton, 32)  // op code (withdraw_jetton)
+            .storeUint(queryId, 64)             // query_id (64-bit)
+            .storeAddress(recipientAddr)        // recipient address (MsgAddress)
+            .storeCoins(amount)                 // amount (coins)
+            .storeRef(secretCell)               // secret cell (ref) for swap verification
             .endCell();
         
         // Send the transaction 
