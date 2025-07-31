@@ -14,10 +14,10 @@ export async function run(provider: NetworkProvider) {
     const vault = provider.open(Vault.createFromAddress(vaultAddr));
     
     // SwapsID input
-    const input = await ui.input('SwapsID to input (decimal): ');
-    const swapsId = BigInt(input);
-    console.log(`SwapsID: ${swapsId}`);
-    console.log(`SwapsID (hex): 0x${swapsId.toString(16)}`);
+    const input = await ui.input('Query ID to input (decimal): ');
+    const queryId = BigInt(input);
+    console.log(`Query ID: ${queryId}`);
+    console.log(`Query ID (hex): 0x${queryId.toString(16)}`);
     
     // User address input
     let userAddr: Address;
@@ -54,7 +54,7 @@ export async function run(provider: NetworkProvider) {
     // Message construction
     const message = beginCell()
         .storeUint(Op.register_deposit, 32) // op::register_deposit()
-        .storeUint(swapsId, 64)             // swap_id (64-bit)
+        .storeUint(queryId, 64)             // query_id (64-bit)
         .storeUint(ethereumUser, 160)       // ethereum_user (160-bit)
         .storeAddress(userAddr)             // ton_user (MsgAddress)
         .storeCoins(amount)                 // amount (coins)
@@ -63,7 +63,7 @@ export async function run(provider: NetworkProvider) {
     
     console.log('\nMessage details to send:');
     console.log(`Op code: 0x${Op.register_deposit.toString(16)} (register_deposit)`);
-    console.log(`SwapsID: ${swapsId}`);
+    console.log(`Query ID: ${queryId}`);
     console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
     console.log(`TON user address: ${userAddr.toString()}`);
     console.log(`Amount: ${amount} nanoTON (${Number(amount) / 1e9} TON)`);
@@ -96,7 +96,7 @@ export async function run(provider: NetworkProvider) {
         console.log('Message sent successfully!');
         console.log('You can confirm the transaction on Tonviewer');
         console.log('\nConfirmation method after sending:');
-        console.log(`1. Tonviewer: get_swaps_info_debug(${swapsId})`);
+        console.log(`1. Tonviewer: get_swaps_info_debug(${queryId})`);
         console.log('2. The result should be as follows:');
         console.log('   - The first value is -0x1 (found)');
         console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
