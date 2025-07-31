@@ -43,6 +43,17 @@ export async function run(provider: NetworkProvider) {
     const cellHash = secretCell.hash().toString('hex');
     const swapId = BigInt('0x' + cellHash);
     const hexString = cellHash.padStart(64, '0');
+    // --- ここからデバッグ出力追加 ---
+    const secretBuf = Buffer.from(secret);
+    const padded = Buffer.alloc(8);
+    secretBuf.copy(padded);
+    console.log('--- Debug for FunC deadline field ---');
+    console.log('secret:', secret);
+    console.log('secret bytes:', secretBuf.toString('hex'));
+    console.log('padded (8 bytes):', padded.toString('hex'));
+    console.log('as int (BigInt):', BigInt('0x' + padded.toString('hex')));
+    console.log('swap_id (cell.hash):', '0x' + cellHash);
+    // --- ここまでデバッグ出力追加 ---
     console.log(`Swap ID (hex): 0x${hexString}`);
     
     // Get amount from user input
