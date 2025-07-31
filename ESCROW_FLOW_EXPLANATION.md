@@ -166,28 +166,7 @@ time_locks: {
     public_cancellation: uint32
 }
 ```
-
-### TON Escrow Contract Storage (by Masa):
-```
-   storage::stopped,
-   storage::jetton_master,
-   storage::jetton_wallet,
-   storage::dict_swaps_info
-```
-```
-storage::dict_swaps_info
-        64,
-        query_id,
-        begin_cell()
-            .store_uint(swap_id, 256) ;; Store swap_id as 256-bit int
-            .store_uint(eth_addr, 160) ;; Maker's Ethereum address (160-bit)
-            .store_slice(ton_addr) ;; Maker's TON address (MsgAddress)
-            .store_coins(amount)
-            .store_uint(creation_timestamp, 64)
-            .store_uint(deadline, 64)
-            .store_uint(status, 2) ;; status (2-bit: 0=init, 1=completed, 2=refunded)
-```
-#### TON Escrow Contract Storage Design (English)
+#### TON Escrow Contract Storage Design (by Masa)
 
 **Storage Structure:**
 ```plaintext
@@ -231,6 +210,51 @@ This dual-field design allows the contract to handle both swap directions (TONâ†
 |----------------|----------------------------------|------------------------------------|
 | TON-initiated  | Maker (locks on TON)             | Taker (locks on ETH)               |
 | ETH-initiated  | Taker (locks on TON)             | Maker (locks on ETH)               |
+
+#### Time Locks Design (by Masa)
+
+The escrow contract supports multiple time lock phases to ensure fairness and flexibility for both swap participants. Each phase is represented by an absolute timestamp (UNIX time) in the contract storage. The main types of time locks are as follows:
+
+- **withdrawal_deadline**: The last moment at which the intended participant (maker or taker, depending on the swap direction) can withdraw funds by revealing the secret.
+- **public_withdrawal_deadline**: The moment after which anyone (not just the intended participant) can withdraw funds, typically as a fallback for inactivity or lost keys.
+- **cancellation_deadline**: The earliest time at which the original depositor can reclaim their funds if the counterparty does not fulfill the swap conditions.
+- **public_cancellation_deadline**: The moment after which anyone can cancel the swap and reclaim the funds, serving as a final safety valve against abandoned escrows.
+
+**Time Lock Variable Summary Table:**
+
+| Function                      | Recommended Variable Name        | Description                                                        |
+|-------------------------------|----------------------------------|--------------------------------------------------------------------|
+| Standard withdrawal deadline   | `withdrawal_deadline`            | Last moment when standard withdraw is allowed                      |
+| Public withdrawal deadline     | `public_withdrawal_deadline`     | Time after which anyone can withdraw (fallback for inactivity)     |
+| Cancellation deadline         | `cancellation_deadline`          | Earliest time when standard cancellation (refund) is allowed       |
+| Public cancellation deadline  | `public_cancellation_deadline`   | Time after which anyone can cancel and reclaim funds (final safety)|
+
+Each variable is a UNIX timestamp (uint32 or uint64, uint32 is ok), and their meanings are consistent across all swap directions.
+
+**Note on State Transitions in TON:**
+- In TON, contract state changes (such as updating deadlines or status) do **not** occur automatically as time passes.
+- Instead, all state transitions are triggered only when an external message (transaction) is received by the contract.
+- When a message is received (e.g., withdraw, cancel, or public actions), the contract compares the current blockchain time with the relevant deadlines and updates the status or storage accordingly.
+- This means that even if a deadline has passed, the contract state will remain unchanged until someone sends a transaction to trigger the transition.
+
+**Storage Layout(Plan):**
+```plaintext
+storage::dict_swaps_info
+    64,
+    query_id,
+    begin_cell()
+        .store_uint(swap_id, 256)         ;; 256-bit unique swap identifier
+        .store_uint(eth_addr, 160)        ;; Ethereum address (160-bit)
+        .store_slice(ton_addr)            ;; TON address (MsgAddress)
+        .store_coins(amount)              ;; Swap amount
+        .store_uint(creation_timestamp, 32)
+        .store_uint(withdrawal_deadline, 32)
+        .store_uint(public_withdrawal_deadline, 32)
+        .store_uint(cancellation_deadline, 32)
+        .store_uint(public_cancellation_deadline, 32)
+        .store_uint(status, 2)            ;; 2-bit status: 0=init, 1=completed, 2=refunded
+```
+
 
 
 ## Test Scenario Walkthrough
