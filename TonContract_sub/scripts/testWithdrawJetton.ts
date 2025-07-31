@@ -23,10 +23,12 @@ export async function run(provider: NetworkProvider) {
     // Query ID input
     const queryId = BigInt(await ui.input('Enter query ID (e.g., 123): '));
     
-    // Swap ID (fixed 256-bit value: all 2)
-    const swapId = BigInt('0x' + '2'.repeat(64));  // 256-bit: 0x222...222
-    // Pad the hex string to ensure it's always 64 characters (256 bits)
-    const hexString = swapId.toString(16).padStart(64, '0');
+    // Swap ID (SHA256(secret))
+    const secret = await ui.input('Enter secret for Swap ID: ');
+    const crypto = await import('crypto');
+    const hash = crypto.createHash('sha256').update(secret).digest('hex');
+    const swapId = BigInt('0x' + hash);
+    const hexString = hash.padStart(64, '0');
     console.log(`Swap ID (hex): 0x${hexString}`);
     // Amount input
     const amount = BigInt(await ui.input('Amount of Jettons to withdraw (in basic units): '));
