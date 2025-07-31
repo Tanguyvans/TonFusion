@@ -13,9 +13,10 @@ import {
 
 export interface SwapsInfo {
     swapId: bigint;          // 256-bit Swap ID
-    makerEthAddr: bigint;    // 160-bit Maker's Ethereum address
-    makerTonAddr: Address;   // Maker's TON address (MsgAddress)
+    ethAddr: bigint;    // 160-bit Ethereum address
+    tonAddr: Address;   // TON address (MsgAddress)
     amount: bigint;          // Amount in coins
+    creationTimestamp: bigint;        // UNIX timestamp
     deadline: bigint;        // UNIX timestamp
     status: number;          // 0=init, 1=completed, 2=refunded
 }
@@ -23,20 +24,22 @@ export interface SwapsInfo {
 export const SwapsInfoValue = {
     serialize: (src: SwapsInfo, builder: any) => {
         builder.storeUint(src.swapId, 256);           // 256-bit Swap ID
-        builder.storeUint(src.makerEthAddr, 160);     // 160-bit Maker's Ethereum address
-        builder.storeAddress(src.makerTonAddr);       // Maker's TON address (MsgAddress)
+        builder.storeUint(src.ethAddr, 160);     // 160-bit Ethereum address
+        builder.storeAddress(src.tonAddr);       // TON address (MsgAddress)
         builder.storeCoins(src.amount);               // Amount in coins
+        builder.storeUint(src.creationTimestamp, 64);          // Creation timestamp (UNIX timestamp)
         builder.storeUint(src.deadline, 64);          // Deadline (UNIX timestamp)
         builder.storeUint(src.status, 2);             // Status (2 bits)
     },
     parse: (slice: any): SwapsInfo => {
         const swapId = slice.loadUintBig(256);        // 256-bit Swap ID
-        const makerEthAddr = slice.loadUintBig(160);  // 160-bit Maker's Ethereum address
-        const makerTonAddr = slice.loadAddress();     // Maker's TON address (MsgAddress)
+        const ethAddr = slice.loadUintBig(160);  // 160-bit Maker's Ethereum address
+        const tonAddr = slice.loadAddress();     // Maker's TON address (MsgAddress)
         const amount = slice.loadCoins();             // Amount in coins
+        const creationTimestamp = slice.loadUintBig(64);       // Creation timestamp (UNIX timestamp)
         const deadline = slice.loadUintBig(64);       // Deadline (UNIX timestamp)
         const status = slice.loadUint(2);             // Status (2 bits)
-        return { swapId, makerEthAddr, makerTonAddr, amount, deadline, status };
+        return { swapId, ethAddr, tonAddr, amount, creationTimestamp, deadline, status };
     }
 };
 
@@ -287,21 +290,21 @@ export class Vault implements Contract {
         params: {
             queryId: bigint;
             swapId: bigint;          // 256-bit Swap ID
-            makerEthAddr: bigint;    // 160-bit Maker's Ethereum address
-            makerTonAddr: Address;   // Maker's TON address
+            ethAddr: bigint;    // 160-bit Ethereum address
+            tonAddr: Address;   // TON address (MsgAddress)
             amount: bigint;          // Amount to deposit
             deadline: bigint;        // Deadline (UNIX timestamp)
             value?: bigint;          // Amount of TON to send with the transaction
         }
     ) {
-        const { queryId, swapId, makerEthAddr, makerTonAddr, amount, deadline, value = toNano('0.05') } = params;
+        const { queryId, swapId, ethAddr, tonAddr, amount, deadline, value = toNano('0.05') } = params;
         
         const messageBody = beginCell()
             .storeUint(0xf1b32984, 32) // op::register_deposit()
             .storeUint(queryId, 64)      // query_id
             .storeUint(swapId, 256)      // swap_id (256-bit)
-            .storeUint(makerEthAddr, 160) // makerEthAddr (160-bit)
-            .storeAddress(makerTonAddr)   // makerTonAddr (MsgAddress)
+            .storeUint(ethAddr, 160) // ethAddr (160-bit)
+            .storeAddress(tonAddr)   // tonAddr (MsgAddress)
             .storeCoins(amount)          // amount (coins)
             .storeUint(deadline, 64)     // deadline (UNIX timestamp)
             .endCell();

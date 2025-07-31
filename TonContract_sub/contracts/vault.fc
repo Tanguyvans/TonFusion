@@ -44,13 +44,13 @@
         
         ;; Get parameters
         int swap_id = in_msg_body~load_uint(256);         ;; Swap ID (SHA256 hash as int)
-        int maker_eth_addr = in_msg_body~load_uint(160);  ;; Maker's Ethereum address (160-bit)
-        slice maker_ton_addr = in_msg_body~load_msg_addr(); ;; Maker's TON address (MsgAddress)
+        int eth_addr = in_msg_body~load_uint(160);  ;;Ethereum address (160-bit)
+        slice ton_addr = in_msg_body~load_msg_addr(); ;; TON address (MsgAddress)
         int amount = in_msg_body~load_coins();            ;; Amount to deposit
         int deadline = in_msg_body~load_uint(64);         ;; Deadline (UNIX timestamp)
         
         ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(query_id, swap_id, maker_eth_addr, maker_ton_addr, amount, now(), deadline, 0);
+        update_swaps_info(query_id, swap_id, eth_addr, ton_addr, amount, now(), deadline, 0);
         
         save_storage();
         return ();
@@ -82,12 +82,12 @@
             
             if (op_code == op::register_deposit()) { ;; Only process if it's register_deposit
                 int swap_id = payload_slice~load_uint(256);         ;; Swap ID (SHA256 hash as int)
-                int maker_eth_addr = payload_slice~load_uint(160);  ;; Maker's Ethereum address (160 bits)
-                slice maker_ton_addr = payload_slice~load_msg_addr(); ;; Maker's TON address (MsgAddress)
+                int eth_addr = payload_slice~load_uint(160);  ;; Ethereum address (160 bits)
+                slice ton_addr = payload_slice~load_msg_addr(); ;; TON address (MsgAddress)
                 int deadline = payload_slice~load_uint(64);         ;; Deadline (64 bits)
                 
                 ;; Only update storage if forward_payload is valid
-                update_swaps_info(query_id, swap_id, maker_eth_addr, maker_ton_addr, amount, now(), deadline, 0);
+                update_swaps_info(query_id, swap_id, eth_addr, ton_addr, amount, now(), deadline, 0);
                 save_storage();
             }
         }
@@ -115,8 +115,8 @@
         int swap_id = slice_hash(secret_slice);          ;; Compute sha256(secret) as int
 
         ;; Check if swap exists
-        (int stored_swap_id, int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
-        throw_unless(er::invalid_query_id(), ethereum_user != 0);
+        (int stored_swap_id, int eth_addr, slice ton_addr, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
+        throw_unless(er::invalid_query_id(), eth_addr != 0);
         throw_unless(er::invalid_swap_id(), stored_swap_id == swap_id);
         throw_unless(er::invalid_swap_status(), status == 0);
         throw_unless(er::invalid_swap_time(), now() >= creation_timestamp);
@@ -154,7 +154,7 @@
             new_status = 1;
         }
         ;; Update storage
-        update_swaps_info(query_id, swap_id, ethereum_user, ton_user, new_stored_amount, creation_timestamp, deadline, new_status);
+        update_swaps_info(query_id, swap_id, eth_addr, ton_addr, new_stored_amount, creation_timestamp, deadline, new_status);
         save_storage();
         
         return ();
@@ -263,13 +263,13 @@ slice get_wallet_address(slice admin_address) method_id {
 ;; Debug getter to retrieve SwapsInfoID details
 (int, int, int, slice, int, int, int, int) get_swaps_info_debug(int query_id) method_id {
     load_storage();
-    (int swap_id, int maker_eth_addr, slice maker_ton_addr, int amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
-    int found = ~ equal_slices(maker_ton_addr, addr_none());
+    (int swap_id, int eth_addr, slice ton_addr, int amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
+    int found = ~ equal_slices(ton_addr, addr_none());
     return (
         found,
         swap_id,
-        maker_eth_addr,
-        maker_ton_addr,
+        eth_addr,
+        ton_addr,
         amount,
         creation_timestamp,
         deadline,

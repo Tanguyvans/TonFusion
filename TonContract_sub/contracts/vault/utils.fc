@@ -26,14 +26,14 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 
 ;; Function to update swaps dict
 ;; Store swap info with int swap_id (sha256(secret))
-() update_swaps_info(int query_id, int swap_id, int maker_eth_addr, slice maker_ton_addr, int amount, int creation_timestamp, int deadline, int status) impure {
+() update_swaps_info(int query_id, int swap_id, int eth_addr, slice ton_addr, int amount, int creation_timestamp, int deadline, int status) impure {
     storage::dict_swaps_info~udict_set_builder(
         64,
         query_id,
         begin_cell()
             .store_uint(swap_id, 256) ;; Store swap_id as 256-bit int
-            .store_uint(maker_eth_addr, 160) ;; Maker's Ethereum address (160-bit)
-            .store_slice(maker_ton_addr) ;; Maker's TON address (MsgAddress)
+            .store_uint(eth_addr, 160) ;; Maker's Ethereum address (160-bit)
+            .store_slice(ton_addr) ;; Maker's TON address (MsgAddress)
             .store_coins(amount)
             .store_uint(creation_timestamp, 64)
             .store_uint(deadline, 64)
@@ -51,13 +51,13 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
             swap_data = ref_cell.begin_parse();
         }
         int swap_id = swap_data~load_uint(256); ;; Load swap_id as int
-        int maker_eth_addr = swap_data~load_uint(160);
-        slice maker_ton_addr = swap_data~load_msg_addr();
+        int eth_addr = swap_data~load_uint(160);
+        slice ton_addr = swap_data~load_msg_addr();
         int amount = swap_data~load_coins();
         int creation_timestamp = swap_data~load_uint(64);
         int deadline = swap_data~load_uint(64);
         int status = swap_data~load_uint(2);
-        return (swap_id, maker_eth_addr, maker_ton_addr, amount, creation_timestamp, deadline, status);
+        return (swap_id, eth_addr, ton_addr, amount, creation_timestamp, deadline, status);
     }
     return (0, 0, null(), 0, 0, 0, 0);
 }
