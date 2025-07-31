@@ -36,12 +36,13 @@ export async function run(provider: NetworkProvider) {
     console.log(`Query ID (decimal): ${queryId}`);
     console.log(`Query ID (hex): 0x${queryId.toString(16)}`);
 
-    // Swap ID (SHA256(secret))
+    // Swap ID: cell.hash() (FunCのslice_hashと一致させる)
     const secret = await ui.input('Enter secret for Swap ID: ');
-    const crypto = await import('crypto');
-    const hash = crypto.createHash('sha256').update(secret).digest('hex');
-    const swapId = BigInt('0x' + hash);
-    const hexString = hash.padStart(64, '0');
+    const { beginCell } = await import('@ton/core');
+    const secretCell = beginCell().storeBuffer(Buffer.from(secret)).endCell();
+    const cellHash = secretCell.hash().toString('hex');
+    const swapId = BigInt('0x' + cellHash);
+    const hexString = cellHash.padStart(64, '0');
     console.log(`Swap ID (hex): 0x${hexString}`);
     
     // Get amount from user input
