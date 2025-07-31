@@ -13,11 +13,17 @@ export async function run(provider: NetworkProvider) {
     const vaultAddr = await ui.inputAddress('Vault address: ');
     const vault = provider.open(Vault.createFromAddress(vaultAddr));
     
-    // SwapsID input
+    // Query ID input
     const input = await ui.input('Query ID to input (decimal): ');
     const queryId = BigInt(input);
     console.log(`Query ID: ${queryId}`);
     console.log(`Query ID (hex): 0x${queryId.toString(16)}`);
+    
+    // Swap ID generation (256-bit)
+    // Generate swapId based on queryId (using queryId as the lower 64 bits)
+    const swapId = BigInt('0x' + '0'.repeat(40) + queryId.toString(16).padStart(16, '0'));
+    console.log(`Swap ID: ${swapId}`);
+    console.log(`Swap ID (hex): 0x${swapId.toString(16)}`);
     
     // User address input
     let userAddr: Address;
@@ -55,6 +61,7 @@ export async function run(provider: NetworkProvider) {
     const message = beginCell()
         .storeUint(Op.register_deposit, 32) // op::register_deposit()
         .storeUint(queryId, 64)             // query_id (64-bit)
+        .storeUint(swapId, 256)             // swap_id (256-bit)
         .storeUint(ethereumUser, 160)       // ethereum_user (160-bit)
         .storeAddress(userAddr)             // ton_user (MsgAddress)
         .storeCoins(amount)                 // amount (coins)
@@ -64,6 +71,7 @@ export async function run(provider: NetworkProvider) {
     console.log('\nMessage details to send:');
     console.log(`Op code: 0x${Op.register_deposit.toString(16)} (register_deposit)`);
     console.log(`Query ID: ${queryId}`);
+    console.log(`Swap ID: ${swapId}`);
     console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
     console.log(`TON user address: ${userAddr.toString()}`);
     console.log(`Amount: ${amount} nanoTON (${Number(amount) / 1e9} TON)`);

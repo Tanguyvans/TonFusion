@@ -12,6 +12,7 @@ import {
 } from '@ton/core';
 
 export interface SwapsInfo {
+    swapId: bigint;          // 256-bit Swap ID
     ethereumUser: bigint;    // 160-bit Ethereum address
     tonUser: Address;        // TON address (MsgAddress)
     amount: bigint;          // Amount in coins
@@ -21,19 +22,21 @@ export interface SwapsInfo {
 
 export const SwapsInfoValue = {
     serialize: (src: SwapsInfo, builder: any) => {
-        builder.storeUint(src.ethereumUser, 160);  // 160-bit Ethereum address
-        builder.storeAddress(src.tonUser);         // TON address (MsgAddress)
-        builder.storeCoins(src.amount);            // Amount in coins
-        builder.storeUint(src.deadline, 64);       // Deadline (UNIX timestamp)
-        builder.storeUint(src.status, 2);          // Status (2 bits)
+        builder.storeUint(src.swapId, 256);           // 256-bit Swap ID
+        builder.storeUint(src.ethereumUser, 160);     // 160-bit Ethereum address
+        builder.storeAddress(src.tonUser);            // TON address (MsgAddress)
+        builder.storeCoins(src.amount);               // Amount in coins
+        builder.storeUint(src.deadline, 64);          // Deadline (UNIX timestamp)
+        builder.storeUint(src.status, 2);             // Status (2 bits)
     },
     parse: (slice: any): SwapsInfo => {
+        const swapId = slice.loadUintBig(256);        // 256-bit Swap ID
         const ethereumUser = slice.loadUintBig(160);  // 160-bit Ethereum address
         const tonUser = slice.loadAddress();          // TON address (MsgAddress)
         const amount = slice.loadCoins();             // Amount in coins
-        const deadline = slice.loadUintBig(64);        // Deadline (UNIX timestamp)
+        const deadline = slice.loadUintBig(64);       // Deadline (UNIX timestamp)
         const status = slice.loadUint(2);             // Status (2 bits)
-        return { ethereumUser, tonUser, amount, deadline, status };
+        return { swapId, ethereumUser, tonUser, amount, deadline, status };
     }
 };
 
@@ -267,6 +270,7 @@ export class Vault implements Contract {
         via: Sender,
         params: {
             queryId: bigint;
+            swapId: bigint;          // 256-bit Swap ID
             ethereumUser: bigint;  // 160-bit Ethereum address
             tonUser: Address;      // TON address
             amount: bigint;        // Amount to deposit
@@ -274,11 +278,12 @@ export class Vault implements Contract {
             value?: bigint;        // Amount of TON to send with the transaction
         }
     ) {
-        const { queryId, ethereumUser, tonUser, amount, deadline, value = toNano('0.05') } = params;
+        const { queryId, swapId, ethereumUser, tonUser, amount, deadline, value = toNano('0.05') } = params;
         
         const messageBody = beginCell()
             .storeUint(0xf1b32984, 32) // op::register_deposit()
             .storeUint(queryId, 64)      // query_id
+            .storeUint(swapId, 256)      // swap_id (256-bit)
             .storeUint(ethereumUser, 160) // ethereum_user (160-bit)
             .storeAddress(tonUser)       // ton_user (MsgAddress)
             .storeCoins(amount)          // amount (coins)
