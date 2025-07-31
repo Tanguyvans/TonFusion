@@ -25,11 +25,12 @@ int gas_excess_return_consumption() asm "5000000 PUSHINT";
 int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 
 ;; Function to update swaps dict
-() update_swaps_info(int swap_id, int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) impure {
+() update_swaps_info(int query_id, slice swap_id, int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) impure {
     storage::dict_swaps_info~udict_set_builder(
         64,
-        swap_id,
+        query_id,
         begin_cell()
+            .store_slice(swap_id) ;; Store full swap_id (256 bits)
             .store_uint(ethereum_user, 160)
             .store_slice(ton_user)
             .store_coins(amount)
@@ -40,8 +41,8 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 }
 
 ;; Function to load swaps info from dict
-(int, slice, int, int, int, int) load_swaps_info(int swap_id) impure {
-    (slice swap_data, int found) = storage::dict_swaps_info.udict_get?(64, swap_id);
+(slice, int, slice, int, int, int, int) load_swaps_info(int query_id) impure {
+    (slice swap_data, int found) = storage::dict_swaps_info.udict_get?(64, query_id);
     if (found) {
         int refs = swap_data.slice_refs();
         if (refs > 0) {
@@ -49,13 +50,14 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
             swap_data = ref_cell.begin_parse();
         }
         
+        slice swap_id = swap_data~load_bits(256);
         int ethereum_user = swap_data~load_uint(160);
         slice ton_user = swap_data~load_msg_addr();
         int amount = swap_data~load_coins();
         int creation_timestamp = swap_data~load_uint(64);
         int deadline = swap_data~load_uint(64);
         int status = swap_data~load_uint(2);
-        return (ethereum_user, ton_user, amount, creation_timestamp, deadline, status);
+        return (swap_id, ethereum_user, ton_user, amount, creation_timestamp, deadline, status);
     }
-    return (0, null(), 0, 0, 0, 0);
+    return (null(), 0, null(), 0, 0, 0, 0);
 }

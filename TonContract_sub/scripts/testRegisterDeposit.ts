@@ -13,11 +13,16 @@ export async function run(provider: NetworkProvider) {
     const vaultAddr = await ui.inputAddress('Vault address: ');
     const vault = provider.open(Vault.createFromAddress(vaultAddr));
     
-    // SwapsID input
-    const input = await ui.input('SwapsID to input (decimal): ');
-    const swapsId = BigInt(input);
-    console.log(`SwapsID: ${swapsId}`);
-    console.log(`SwapsID (hex): 0x${swapsId.toString(16)}`);
+    // Query ID input
+    const input = await ui.input('Query ID to input (decimal): ');
+    const queryId = BigInt(input);
+    console.log(`Query ID (hex): 0x${queryId.toString(16)}`);
+    
+    // Swap ID (fixed 256-bit value: all 1)
+    const swapId = BigInt('0x' + '1'.repeat(64));  // 256-bit: 0x111...111
+    // Pad the hex string to ensure it's always 64 characters (256 bits)
+    const hexString = swapId.toString(16).padStart(64, '0');
+    console.log(`Swap ID (hex): 0x${hexString}`);
     
     // User address input
     let userAddr: Address;
@@ -43,8 +48,7 @@ export async function run(provider: NetworkProvider) {
 
     // Deadline input (default: 24 hours from now)
     const defaultDeadline = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours from now
-    const deadlineInput = await ui.input(`Deadline (UNIX timestamp, default: ${defaultDeadline}): `);
-    const deadline = deadlineInput ? BigInt(deadlineInput) : BigInt(defaultDeadline);
+    const deadline = BigInt(defaultDeadline);
     console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
 
     // Gas amount
@@ -54,7 +58,8 @@ export async function run(provider: NetworkProvider) {
     // Message construction
     const message = beginCell()
         .storeUint(Op.register_deposit, 32) // op::register_deposit()
-        .storeUint(swapsId, 64)             // swap_id (64-bit)
+        .storeUint(queryId, 64)             // query_id (64-bit)
+        .storeUint(swapId, 256)             // swap_id (256-bit)
         .storeUint(ethereumUser, 160)       // ethereum_user (160-bit)
         .storeAddress(userAddr)             // ton_user (MsgAddress)
         .storeCoins(amount)                 // amount (coins)
@@ -63,7 +68,8 @@ export async function run(provider: NetworkProvider) {
     
     console.log('\nMessage details to send:');
     console.log(`Op code: 0x${Op.register_deposit.toString(16)} (register_deposit)`);
-    console.log(`SwapsID: ${swapsId}`);
+    console.log(`Query ID: ${queryId}`);
+    console.log(`Swap ID: ${swapId}`);
     console.log(`Ethereum user: 0x${ethereumUser.toString(16)}`);
     console.log(`TON user address: ${userAddr.toString()}`);
     console.log(`Amount: ${amount} nanoTON (${Number(amount) / 1e9} TON)`);
@@ -96,14 +102,20 @@ export async function run(provider: NetworkProvider) {
         console.log('Message sent successfully!');
         console.log('You can confirm the transaction on Tonviewer');
         console.log('\nConfirmation method after sending:');
-        console.log(`1. Tonviewer: get_swaps_info_debug(${swapsId})`);
+        console.log(`1. Tonviewer: get_swaps_info_debug(${queryId})`);
         console.log('2. The result should be as follows:');
         console.log('   - The first value is -0x1 (found)');
-        console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
-        console.log(`   - The third value is ${userAddr.toString()} (TON address)`);
-        console.log(`   - The fourth value is ${amount} (amount in nanoTON)`);
-        console.log(`   - The fifth value is ${deadline} (deadline as UNIX timestamp)`);
-        console.log('   - The sixth value is 0 (status: 0=init, 1=completed, 2=refunded)');
+        console.log(`   - The second value is 0x${swapId.toString(16).padStart(64, '0')} (Swap ID, 256bit hex)`);
+        console.log('     (In the cell value, after the TON BOC cell header, the actual swapId you set will appear.');
+        console.log('      Example:');
+        console.log('        cell: b5ee9c720101010100220000401111111111111111111111111111111111111111111111111111111111111111');
+        console.log('        cell: b5ee9c720101010100220000400000000000000000000000000000000000000000000000000000000000000000');
+        console.log('     )');
+        console.log(`   - The third value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
+        console.log(`   - The fourth value is ${userAddr.toString()} (TON address)`);
+        console.log(`   - The fifth value is ${amount} (amount in nanoTON)`);
+        console.log(`   - The sixth value is ${deadline} (deadline as UNIX timestamp)`);
+        console.log('   - The seventh value is 0 (status: 0=init, 1=completed, 2=refunded)');
     } catch (error) {
         console.error('Error sending message:', error instanceof Error ? error.message : String(error));
     }

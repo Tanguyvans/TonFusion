@@ -30,11 +30,17 @@ export async function run(provider: NetworkProvider) {
     }
     
     console.log(`\nSender address: ${senderAddr.toString()}`);
-    
-    // Get swaps ID and amount from user input
-    const swapsIdStr = await ui.input('Enter swaps ID (e.g., 123): ');
-    const swapsId = BigInt(swapsIdStr);
-    console.log(`SwapsID: ${swapsId}`);
+    // Query ID input
+    const input = await ui.input('Query ID to input (decimal): ');
+    const queryId = BigInt(input);
+    console.log(`Query ID (decimal): ${queryId}`);
+    console.log(`Query ID (hex): 0x${queryId.toString(16)}`);
+
+    // Swap ID (fixed 256-bit value: all 1)
+    const swapId = BigInt('0x' + '1'.repeat(64));  // 256-bit: 0x111...111
+    // Pad the hex string to ensure it's always 64 characters (256 bits)
+    const hexString = swapId.toString(16).padStart(64, '0');
+    console.log(`Swap ID (hex): 0x${hexString}`);
     
     // Get amount from user input
     const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
@@ -59,7 +65,9 @@ export async function run(provider: NetworkProvider) {
     console.log('\nTransaction Details');
     console.log('------------------');
     console.log(`Transaction Type: Jetton Transfer`);
-    console.log(`Swaps ID: ${swapsId}`);
+    console.log(`Query ID (decimal): ${queryId}`);
+    console.log(`Query ID (hex): 0x${queryId.toString(16)}`);
+    console.log(`Swap ID (hex): 0x${hexString}`);
     console.log(`Amount: ${amount} nano`);
     console.log('\nAddresses:');
     console.log(`  Sender:        ${senderAddr.toString()}`);
@@ -81,6 +89,7 @@ export async function run(provider: NetworkProvider) {
     // Build forward payload
     const forwardPayload = beginCell()
         .storeUint(Op.register_deposit, 32) // op::register_deposit
+        .storeUint(swapId, 256)             // swap_id (256-bit)
         .storeBuffer(ethereumUserBuffer)    // ethereum_user (160 bits)
         .storeAddress(senderAddr)           // ton_user (using sender address)
         .storeUint(deadline, 64)            // deadline (64 bits)
@@ -89,14 +98,14 @@ export async function run(provider: NetworkProvider) {
     // Build the transfer message
     const transferMessage = beginCell()
         .storeUint(Op.transfer, 32) // transfer opcode from Constants
-        .storeUint(swapsId, 64)    // swaps_id
+        .storeUint(queryId, 64)    // query_id
         .storeCoins(amount)        // amount
         .storeAddress(destinationAddr) // destination
         .storeAddress(senderAddr)      // response_destination (sender)
         .storeBit(0)                // custom_payload: null
         .storeCoins(forwardTonAmount) // forward_ton_amount
         .storeBit(1)                // forward_payload exists
-        .storeRef(forwardPayload)     // forward_payload with ethereum_user, ton_user, deadline
+        .storeRef(forwardPayload)     // forward_payload with swap_id, ethereum_user, ton_user, deadline
         .endCell();
     
     // Confirmation
@@ -134,15 +143,21 @@ export async function run(provider: NetworkProvider) {
         
         console.log('You can check the transaction on a TON explorer.');
         console.log('\nConfirmation method after sending:');
-        console.log(`1. Tonviewer: get_swaps_info_debug(${swapsId})`);
+        console.log(`1. Tonviewer: get_swaps_info_debug(${queryId})`);
         console.log('2. The result should be as follows:');
         console.log('   - The first value is -0x1 (found)');
-        console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
-        console.log(`   - The third value is ${senderAddr.toString()} (TON address)`);
-        console.log(`   - The fourth value is ${amount} (amount in nanoTON)`);
-        console.log('   - The fifth value is <creation_timestamp> (creation timestamp)');
-        console.log(`   - The sixth value is ${deadline} (deadline as UNIX timestamp)`);
-        console.log('   - The seventh value is 0 (status: 0=init, 1=completed, 2=refunded)');
+        console.log(`   - The second value is 0x${hexString} (Swap ID, 256bit hex)`);
+        console.log('     (In the cell value, after the TON BOC cell header, the actual swapId you set will appear.');
+        console.log('      Example:');
+        console.log('        cell: b5ee9c720101010100220000401111111111111111111111111111111111111111111111111111111111111111');
+        console.log('        cell: b5ee9c720101010100220000400000000000000000000000000000000000000000000000000000000000000000');
+        console.log('     )');
+        console.log(`   - The third value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
+        console.log(`   - The fourth value is ${senderAddr.toString()} (TON address)`);
+        console.log(`   - The fifth value is ${amount} (amount in nanoTON)`);
+        console.log('   - The sixth value is <creation_timestamp> (creation timestamp)');
+        console.log(`   - The seventh value is ${deadline} (deadline as UNIX timestamp)`);
+        console.log('   - The eighth value is 0 (status: 0=init, 1=completed, 2=refunded)');
         
     } catch (error) {
         console.error('\nError sending Jetton transfer:');

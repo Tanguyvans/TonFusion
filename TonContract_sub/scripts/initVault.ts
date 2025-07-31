@@ -34,11 +34,6 @@ export async function run(provider: NetworkProvider) {
     console.log(`Jetton Wallet: ${calculatedJettonWallet.toString()}`);
     console.log('-----------------');
 
-    const confirm = await ui.input('Do you want to apply these changes? (y/n): ');
-    if (confirm.toLowerCase() !== 'y') {
-        console.log('Operation cancelled');
-        return;
-    }
 
     // Send the transaction using the Vault wrapper's method
     try {
