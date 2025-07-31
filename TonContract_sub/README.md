@@ -52,5 +52,21 @@ npx blueprint run
 [https://testnet.tonviewer.com/kQDT_l6aeZu1JrKQvN2SEatwsl6dIvwTscWk8HtZdEpVUWBH](https://testnet.tonviewer.com/kQDT_l6aeZu1JrKQvN2SEatwsl6dIvwTscWk8HtZdEpVUWBH)
 
 
+user -> deploy contract
+
+user -> init vault (constructor contract) [jetton wallet]
+
+user -> send usdt to the contract address 
 
 
+FUSION+
+
+organiser -> deploys contract 
+
+10usdt -> ETH contract -> (locked)
+
+user 10 usdt -> TON contract 
+
+verification waiting 
+
+(hashlock) -> passcode -> access the funds from the contract
