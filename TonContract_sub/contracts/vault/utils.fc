@@ -26,7 +26,7 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
 
 ;; Function to update swaps dict
 ;; Store swap info with int swap_id (sha256(secret))
-() update_swaps_info(int query_id, int swap_id, int eth_addr, slice ton_addr, int amount, int creation_timestamp, int deadline, int status) impure {
+() update_swaps_info(int query_id, int swap_id, int eth_addr, slice ton_addr, int amount, int creation_timestamp, int withdrawal_deadline, int public_withdrawal_deadline, int cancellation_deadline, int public_cancellation_deadline, int status) impure {
     storage::dict_swaps_info~udict_set_builder(
         64,
         query_id,
@@ -35,14 +35,17 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
             .store_uint(eth_addr, 160) ;; Maker's Ethereum address (160-bit)
             .store_slice(ton_addr) ;; Maker's TON address (MsgAddress)
             .store_coins(amount)
-            .store_uint(creation_timestamp, 64)
-            .store_uint(deadline, 64)
+            .store_uint(creation_timestamp, 32)
+            .store_uint(withdrawal_deadline, 32)
+            .store_uint(public_withdrawal_deadline, 32)
+            .store_uint(cancellation_deadline, 32)
+            .store_uint(public_cancellation_deadline, 32)
             .store_uint(status, 2) ;; status (2-bit: 0=init, 1=completed, 2=refunded)
     );
 }
 
 ;; Load swap info, returning int swap_id (sha256(secret))
-(int, int, slice, int, int, int, int) load_swaps_info(int query_id) impure {
+(int, int, slice, int, int, int, int, int, int, int) load_swaps_info(int query_id) impure {
     (slice swap_data, int found) = storage::dict_swaps_info.udict_get?(64, query_id);
     if (found) {
         int refs = swap_data.slice_refs();
@@ -54,10 +57,13 @@ int gas_jetton_transfer_consumption() asm "50000000 PUSHINT";
         int eth_addr = swap_data~load_uint(160);
         slice ton_addr = swap_data~load_msg_addr();
         int amount = swap_data~load_coins();
-        int creation_timestamp = swap_data~load_uint(64);
-        int deadline = swap_data~load_uint(64);
+        int creation_timestamp = swap_data~load_uint(32);
+        int withdrawal_deadline = swap_data~load_uint(32);
+        int public_withdrawal_deadline = swap_data~load_uint(32);
+        int cancellation_deadline = swap_data~load_uint(32);
+        int public_cancellation_deadline = swap_data~load_uint(32);
         int status = swap_data~load_uint(2);
-        return (swap_id, eth_addr, ton_addr, amount, creation_timestamp, deadline, status);
+        return (swap_id, eth_addr, ton_addr, amount, creation_timestamp, withdrawal_deadline, public_withdrawal_deadline, cancellation_deadline, public_cancellation_deadline, status);
     }
-    return (0, 0, null(), 0, 0, 0, 0);
+    return (0, 0, null(), 0, 0, 0, 0, 0, 0, 0);
 }

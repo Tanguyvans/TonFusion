@@ -44,13 +44,16 @@
         
         ;; Get parameters
         int swap_id = in_msg_body~load_uint(256);         ;; Swap ID (SHA256 hash as int)
-        int eth_addr = in_msg_body~load_uint(160);  ;;Ethereum address (160-bit)
+        int eth_addr = in_msg_body~load_uint(160);  ;; Ethereum address (160-bit)
         slice ton_addr = in_msg_body~load_msg_addr(); ;; TON address (MsgAddress)
         int amount = in_msg_body~load_coins();            ;; Amount to deposit
-        int deadline = in_msg_body~load_uint(64);         ;; Deadline (UNIX timestamp)
+        int withdrawal_deadline = in_msg_body~load_uint(32);         ;; Withdrawal deadline (UNIX timestamp)
+        int public_withdrawal_deadline = in_msg_body~load_uint(32);  ;; Public withdrawal deadline (UNIX timestamp)
+        int cancellation_deadline = in_msg_body~load_uint(32);       ;; Cancellation deadline (UNIX timestamp)
+        int public_cancellation_deadline = in_msg_body~load_uint(32); ;; Public cancellation deadline (UNIX timestamp)
         
         ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(query_id, swap_id, eth_addr, ton_addr, amount, now(), deadline, 0);
+        update_swaps_info(query_id, swap_id, eth_addr, ton_addr, amount, now(), withdrawal_deadline, public_withdrawal_deadline, cancellation_deadline, public_cancellation_deadline, 0);
         
         save_storage();
         return ();
@@ -84,10 +87,13 @@
                 int swap_id = payload_slice~load_uint(256);         ;; Swap ID (SHA256 hash as int)
                 int eth_addr = payload_slice~load_uint(160);  ;; Ethereum address (160 bits)
                 slice ton_addr = payload_slice~load_msg_addr(); ;; TON address (MsgAddress)
-                int deadline = payload_slice~load_uint(64);         ;; Deadline (64 bits)
+                int withdrawal_deadline = payload_slice~load_uint(32);         ;; Withdrawal deadline (32 bits)
+                int public_withdrawal_deadline = payload_slice~load_uint(32);  ;; Public withdrawal deadline (32 bits)
+                int cancellation_deadline = payload_slice~load_uint(32);       ;; Cancellation deadline (32 bits)
+                int public_cancellation_deadline = payload_slice~load_uint(32); ;; Public cancellation deadline (32 bits)
                 
                 ;; Only update storage if forward_payload is valid
-                update_swaps_info(query_id, swap_id, eth_addr, ton_addr, amount, now(), deadline, 0);
+                update_swaps_info(query_id, swap_id, eth_addr, ton_addr, amount, now(), withdrawal_deadline, public_withdrawal_deadline, cancellation_deadline, public_cancellation_deadline, 0);
                 save_storage();
             }
         }
@@ -115,12 +121,12 @@
         int swap_id = slice_hash(secret_slice);          ;; Compute sha256(secret) as int
 
         ;; Check if swap exists
-        (int stored_swap_id, int eth_addr, slice ton_addr, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
+        (int stored_swap_id, int eth_addr, slice ton_addr, int stored_amount, int creation_timestamp, int withdrawal_deadline, int public_withdrawal_deadline, int cancellation_deadline, int public_cancellation_deadline, int status) = load_swaps_info(query_id);
         throw_unless(er::invalid_query_id(), eth_addr != 0);
         throw_unless(er::invalid_swap_id(), stored_swap_id == swap_id);
         throw_unless(er::invalid_swap_status(), status == 0);
         throw_unless(er::invalid_swap_time(), now() >= creation_timestamp);
-        throw_unless(er::invalid_swap_time(), now() <= deadline);
+        throw_unless(er::invalid_swap_time(), now() <= withdrawal_deadline);
         throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
         
         ;; Create jetton transfer message body
@@ -154,7 +160,7 @@
             new_status = 1;
         }
         ;; Update storage
-        update_swaps_info(query_id, swap_id, eth_addr, ton_addr, new_stored_amount, creation_timestamp, deadline, new_status);
+        update_swaps_info(query_id, swap_id, eth_addr, ton_addr, new_stored_amount, creation_timestamp, withdrawal_deadline, public_withdrawal_deadline, cancellation_deadline, public_cancellation_deadline, new_status);
         save_storage();
         
         return ();
@@ -261,9 +267,9 @@ slice get_wallet_address(slice admin_address) method_id {
 }
 
 ;; Debug getter to retrieve SwapsInfoID details
-(int, int, int, slice, int, int, int, int) get_swaps_info_debug(int query_id) method_id {
+(int, int, int, slice, int, int, int, int, int, int, int) get_swaps_info_debug(int query_id) method_id {
     load_storage();
-    (int swap_id, int eth_addr, slice ton_addr, int amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
+    (int swap_id, int eth_addr, slice ton_addr, int amount, int creation_timestamp, int withdrawal_deadline, int public_withdrawal_deadline, int cancellation_deadline, int public_cancellation_deadline, int status) = load_swaps_info(query_id);
     int found = ~ equal_slices(ton_addr, addr_none());
     return (
         found,
@@ -272,7 +278,10 @@ slice get_wallet_address(slice admin_address) method_id {
         ton_addr,
         amount,
         creation_timestamp,
-        deadline,
+        withdrawal_deadline,
+        public_withdrawal_deadline,
+        cancellation_deadline,
+        public_cancellation_deadline,
         status
     );
 }
