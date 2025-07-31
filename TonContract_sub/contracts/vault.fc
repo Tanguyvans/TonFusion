@@ -113,7 +113,7 @@
         
         ;; Check if swap exists
         (slice swap_id, int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
-        throw_unless(er::invalid_query_id(), query_id != 0);
+        throw_unless(er::invalid_query_id(), ethereum_user != 0);
         throw_unless(er::invalid_swap_status(), status == 0);
         
         ;; Time validation and amount handling
