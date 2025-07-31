@@ -120,14 +120,28 @@
         slice secret_slice = secret_cell.begin_parse();  ;; Parse cell to slice
         int swap_id = slice_hash(secret_slice);          ;; Compute sha256(secret) as int
 
-        ;; Check if swap exists
+        ;; Load SwapsInfoID 
         (int stored_swap_id, int eth_addr, slice ton_addr, int stored_amount, int creation_timestamp, int withdrawal_deadline, int public_withdrawal_deadline, int cancellation_deadline, int public_cancellation_deadline, int status) = load_swaps_info(query_id);
+        
+        ;; Check basic conditions
         throw_unless(er::invalid_query_id(), eth_addr != 0);
-        throw_unless(er::invalid_swap_id(), stored_swap_id == swap_id);
-        throw_unless(er::invalid_swap_status(), status == 0);
         throw_unless(er::invalid_swap_time(), now() >= creation_timestamp);
-        throw_unless(er::invalid_swap_time(), now() <= withdrawal_deadline);
+        throw_unless(er::invalid_swap_id(), stored_swap_id == swap_id);
         throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
+        throw_unless(er::invalid_swap_status(), status == 0);
+
+        ;; Check time and permited withdrawer address
+        if (now() <= withdrawal_deadline) {
+            ;; intended participant only withdraw is allowed
+            throw_unless(er::invalid_swap_withdrawer(), equal_slices(to_address, ton_addr));
+        } else {
+            if (now() <= public_withdrawal_deadline) {
+                ;; public withdraw period (anyone can withdraw)
+            } else {
+                ;; otherwise withdraw is not allowed by anyone
+                throw(er::invalid_swap_time());
+            }
+        }
         
         ;; Create jetton transfer message body
         cell transfer_body = begin_cell()
