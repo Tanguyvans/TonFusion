@@ -37,7 +37,7 @@ npx blueprint run
 ```bash
 npx blueprint run
 ```
-1. testTransferNotification_realJettonTransfer
+1. testDepositJetton
    - Jetton Master address: kQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPsyy (USDT on testnet)
    - Destination address (Vault contract): Address of the vault deployed in Deploy & Initiate
    - Query ID: decimal value of your choice
@@ -48,8 +48,8 @@ npx blueprint run
 
 2. testWithdrawJetton
    - Vault contract address: Address of the vault deployed in Deploy & Initiate
-   - Query ID: must match the Query ID used in testTransferNotification_realJettonTransfer
-   - Secret for Swap ID: must match the Secret for Swap ID used in testTransferNotification_realJettonTransfer
+   - Query ID: must match the Query ID used in testDepositJetton
+   - Secret for Swap ID: must match the Secret for Swap ID used in testDepositJetton
 
 **Withdrawal is only possible when both Query ID and Secret for Swap ID match**
 
