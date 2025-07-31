@@ -20,12 +20,17 @@ export async function run(provider: NetworkProvider) {
     }
     const recipientAddr = senderAddr;
     
-    // Amount input
-    const amount = BigInt(await ui.input('Amount of Jettons to withdraw (in basic units): '));
-    
     // Query ID input
     const queryId = BigInt(await ui.input('Enter query ID (e.g., 123): '));
     
+    // Swap ID (fixed 256-bit value: all 2)
+    const swapId = BigInt('0x' + '2'.repeat(64));  // 256-bit: 0x222...222
+    // Pad the hex string to ensure it's always 64 characters (256 bits)
+    const hexString = swapId.toString(16).padStart(64, '0');
+    console.log(`Swap ID (hex): 0x${hexString}`);
+    // Amount input
+    const amount = BigInt(await ui.input('Amount of Jettons to withdraw (in basic units): '));
+
     console.log('\nTransaction Details:');
     console.log('------------------');
     console.log(`Vault: ${vaultAddr.toString()}`);
@@ -48,6 +53,7 @@ export async function run(provider: NetworkProvider) {
             .storeUint(queryId, 64)              // query_id
             .storeAddress(recipientAddr)         // to_address
             .storeCoins(amount)                  // amount
+            .storeUint(swapId, 256)              // swap_id (256-bit)
             .endCell();
         
         // Send the transaction 
