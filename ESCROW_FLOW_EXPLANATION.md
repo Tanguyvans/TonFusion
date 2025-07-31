@@ -223,6 +223,8 @@ In this document, all deadlines mean the last moment (endtime) when the correspo
 - **cancellation_deadline**: The last moment at which the original depositor can reclaim their funds if the counterparty does not fulfill the swap conditions.
 - **public_cancellation_deadline**: The last moment at which anyone can cancel the swap and reclaim the funds (final safety valve against abandoned escrows).
 
+> **Note:** Public withdrawal and public refund require the secret to be revealed (publicly known). Only after the secret is made public can anyone perform a withdrawal or refund during the public withdrawal or public cancellation phase.
+
 **Time Lock Variable Summary Table:**
 
 | Function                      | Recommended Variable Name        | Description                                                        |
