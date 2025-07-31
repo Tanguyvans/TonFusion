@@ -266,7 +266,7 @@ export class Vault implements Contract {
         provider: ContractProvider,
         via: Sender,
         params: {
-            swapId: bigint;
+            queryId: bigint;
             ethereumUser: bigint;  // 160-bit Ethereum address
             tonUser: Address;      // TON address
             amount: bigint;        // Amount to deposit
@@ -274,11 +274,11 @@ export class Vault implements Contract {
             value?: bigint;        // Amount of TON to send with the transaction
         }
     ) {
-        const { swapId, ethereumUser, tonUser, amount, deadline, value = toNano('0.05') } = params;
+        const { queryId, ethereumUser, tonUser, amount, deadline, value = toNano('0.05') } = params;
         
         const messageBody = beginCell()
             .storeUint(0xf1b32984, 32) // op::register_deposit()
-            .storeUint(swapId, 64)      // swap_id
+            .storeUint(queryId, 64)      // query_id
             .storeUint(ethereumUser, 160) // ethereum_user (160-bit)
             .storeAddress(tonUser)       // ton_user (MsgAddress)
             .storeCoins(amount)          // amount (coins)
