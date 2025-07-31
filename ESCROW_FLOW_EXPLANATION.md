@@ -215,19 +215,22 @@ This dual-field design allows the contract to handle both swap directions (TONâ†
 
 The escrow contract supports multiple time lock phases to ensure fairness and flexibility for both swap participants. Each phase is represented by an absolute timestamp (UNIX time) in the contract storage. The main types of time locks are as follows:
 
+**Note:**
+In this document, all deadlines mean the last moment (endtime) when the corresponding operation is allowed. At the exact moment of the deadline, the operation is still permitted, but not after.
+
 - **withdrawal_deadline**: The last moment at which the intended participant (maker or taker, depending on the swap direction) can withdraw funds by revealing the secret.
-- **public_withdrawal_deadline**: The moment after which anyone (not just the intended participant) can withdraw funds, typically as a fallback for inactivity or lost keys.
-- **cancellation_deadline**: The earliest time at which the original depositor can reclaim their funds if the counterparty does not fulfill the swap conditions.
-- **public_cancellation_deadline**: The moment after which anyone can cancel the swap and reclaim the funds, serving as a final safety valve against abandoned escrows.
+- **public_withdrawal_deadline**: The last moment at which anyone (not just the intended participant) can withdraw funds (fallback for inactivity).
+- **cancellation_deadline**: The last moment at which the original depositor can reclaim their funds if the counterparty does not fulfill the swap conditions.
+- **public_cancellation_deadline**: The last moment at which anyone can cancel the swap and reclaim the funds (final safety valve against abandoned escrows).
 
 **Time Lock Variable Summary Table:**
 
 | Function                      | Recommended Variable Name        | Description                                                        |
 |-------------------------------|----------------------------------|--------------------------------------------------------------------|
 | Standard withdrawal deadline   | `withdrawal_deadline`            | Last moment when standard withdraw is allowed                      |
-| Public withdrawal deadline     | `public_withdrawal_deadline`     | Time after which anyone can withdraw (fallback for inactivity)     |
-| Cancellation deadline         | `cancellation_deadline`          | Earliest time when standard cancellation (refund) is allowed       |
-| Public cancellation deadline  | `public_cancellation_deadline`   | Time after which anyone can cancel and reclaim funds (final safety)|
+| Public withdrawal deadline     | `public_withdrawal_deadline`     | Last moment when public withdraw is allowed                        |
+| Cancellation deadline         | `cancellation_deadline`          | Last moment when standard cancellation (refund) is allowed         |
+| Public cancellation deadline  | `public_cancellation_deadline`   | Last moment when public cancellation (refund) is allowed           |
 
 Each variable is a UNIX timestamp (uint32 or uint64, uint32 is ok), and their meanings are consistent across all swap directions.
 
