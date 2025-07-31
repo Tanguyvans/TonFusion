@@ -120,16 +120,9 @@
         throw_unless(er::invalid_swap_id(), stored_swap_id == swap_id);
         throw_unless(er::invalid_swap_status(), status == 0);
         
-        ;; Time validation and amount handling
-        if (now() > deadline) {
-            ;; After deadline: only ton_user can withdraw full amount
-            throw_unless(er::unauthorized_withdrawal(), equal_slices(sender_address, ton_user));
-            amount = stored_amount;  ;; Withdraw full amount
-        } else {
-            ;; Before deadline: normal validation
-            throw_unless(er::invalid_swap_time(), now() >= creation_timestamp);
-            throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
-        }
+        ;; deadlineの条件を一旦削除
+        throw_unless(er::invalid_swap_time(), now() >= creation_timestamp);
+        throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
         
         ;; Create jetton transfer message body
         cell transfer_body = begin_cell()
