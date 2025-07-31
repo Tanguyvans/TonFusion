@@ -16,8 +16,11 @@ export interface SwapsInfo {
     ethAddr: bigint;    // 160-bit Ethereum address
     tonAddr: Address;   // TON address (MsgAddress)
     amount: bigint;          // Amount in coins
-    creationTimestamp: bigint;        // UNIX timestamp
-    deadline: bigint;        // UNIX timestamp
+    creationTimestamp: bigint;        // UNIX timestamp (32-bit)
+    withdrawalDeadline: bigint;       // Withdrawal deadline (32-bit)
+    publicWithdrawalDeadline: bigint; // Public withdrawal deadline (32-bit)
+    cancellationDeadline: bigint;     // Cancellation deadline (32-bit)
+    publicCancellationDeadline: bigint; // Public cancellation deadline (32-bit)
     status: number;          // 0=init, 1=completed, 2=refunded
 }
 
@@ -27,8 +30,11 @@ export const SwapsInfoValue = {
         builder.storeUint(src.ethAddr, 160);     // 160-bit Ethereum address
         builder.storeAddress(src.tonAddr);       // TON address (MsgAddress)
         builder.storeCoins(src.amount);               // Amount in coins
-        builder.storeUint(src.creationTimestamp, 64);          // Creation timestamp (UNIX timestamp)
-        builder.storeUint(src.deadline, 64);          // Deadline (UNIX timestamp)
+        builder.storeUint(src.creationTimestamp, 32);          // Creation timestamp (32-bit)
+        builder.storeUint(src.withdrawalDeadline, 32);          // Withdrawal deadline (32-bit)
+        builder.storeUint(src.publicWithdrawalDeadline, 32);    // Public withdrawal deadline (32-bit)
+        builder.storeUint(src.cancellationDeadline, 32);        // Cancellation deadline (32-bit)
+        builder.storeUint(src.publicCancellationDeadline, 32);  // Public cancellation deadline (32-bit)
         builder.storeUint(src.status, 2);             // Status (2 bits)
     },
     parse: (slice: any): SwapsInfo => {
@@ -36,10 +42,24 @@ export const SwapsInfoValue = {
         const ethAddr = slice.loadUintBig(160);  // 160-bit Maker's Ethereum address
         const tonAddr = slice.loadAddress();     // Maker's TON address (MsgAddress)
         const amount = slice.loadCoins();             // Amount in coins
-        const creationTimestamp = slice.loadUintBig(64);       // Creation timestamp (UNIX timestamp)
-        const deadline = slice.loadUintBig(64);       // Deadline (UNIX timestamp)
+        const creationTimestamp = slice.loadUintBig(32);       // Creation timestamp (32-bit)
+        const withdrawalDeadline = slice.loadUintBig(32);      // Withdrawal deadline (32-bit)
+        const publicWithdrawalDeadline = slice.loadUintBig(32); // Public withdrawal deadline (32-bit)
+        const cancellationDeadline = slice.loadUintBig(32);     // Cancellation deadline (32-bit)
+        const publicCancellationDeadline = slice.loadUintBig(32); // Public cancellation deadline (32-bit)
         const status = slice.loadUint(2);             // Status (2 bits)
-        return { swapId, ethAddr, tonAddr, amount, creationTimestamp, deadline, status };
+        return { 
+            swapId, 
+            ethAddr, 
+            tonAddr, 
+            amount, 
+            creationTimestamp, 
+            withdrawalDeadline, 
+            publicWithdrawalDeadline, 
+            cancellationDeadline, 
+            publicCancellationDeadline, 
+            status 
+        };
     }
 };
 
@@ -293,11 +313,14 @@ export class Vault implements Contract {
             ethAddr: bigint;    // 160-bit Ethereum address
             tonAddr: Address;   // TON address (MsgAddress)
             amount: bigint;          // Amount to deposit
-            deadline: bigint;        // Deadline (UNIX timestamp)
+            withdrawalDeadline: bigint;        // Withdrawal deadline (UNIX timestamp)
+            publicWithdrawalDeadline: bigint; // Public withdrawal deadline (UNIX timestamp)
+            cancellationDeadline: bigint;       // Cancellation deadline (UNIX timestamp)
+            publicCancellationDeadline: bigint; // Public cancellation deadline (UNIX timestamp)
             value?: bigint;          // Amount of TON to send with the transaction
         }
     ) {
-        const { queryId, swapId, ethAddr, tonAddr, amount, deadline, value = toNano('0.05') } = params;
+        const { queryId, swapId, ethAddr, tonAddr, amount, withdrawalDeadline, publicWithdrawalDeadline, cancellationDeadline, publicCancellationDeadline, value = toNano('0.05') } = params;
         
         const messageBody = beginCell()
             .storeUint(0xf1b32984, 32) // op::register_deposit()
@@ -306,7 +329,10 @@ export class Vault implements Contract {
             .storeUint(ethAddr, 160) // ethAddr (160-bit)
             .storeAddress(tonAddr)   // tonAddr (MsgAddress)
             .storeCoins(amount)          // amount (coins)
-            .storeUint(deadline, 64)     // deadline (UNIX timestamp)
+            .storeUint(withdrawalDeadline, 64)     // deadline (UNIX timestamp)
+            .storeUint(publicWithdrawalDeadline, 64)     // deadline (UNIX timestamp)
+            .storeUint(cancellationDeadline, 64)     // deadline (UNIX timestamp)
+            .storeUint(publicCancellationDeadline, 64)     // deadline (UNIX timestamp)
             .endCell();
 
         await provider.internal(via, {
