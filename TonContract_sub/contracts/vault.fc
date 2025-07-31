@@ -72,8 +72,8 @@
         ;; Get parameters
         int amount = in_msg_body~load_coins();           ;; Amount to deposit
         slice sender_address = in_msg_body~load_msg_addr(); ;; address which sent jetton
-        cell forward_payload = in_msg_body~load_maybe_ref(); ;; Skip custom_payload and get forward_payload
-        cell custom_payload = in_msg_body~load_maybe_ref(); ;; Skip forward_payload and get custom_payload
+        cell forward_payload = in_msg_body~load_maybe_ref(); ;; 
+        cell custom_payload = in_msg_body~load_maybe_ref(); ;; 
         
         ;; Parse forward_payload if it exists
         if (~ forward_payload.null?()) {
@@ -113,7 +113,7 @@
         
         ;; Check if swap exists
         (slice swap_id, int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
-        throw_unless(er::invalid_swap_id(), ethereum_user != 0);
+        throw_unless(er::invalid_query_id(), query_id != 0);
         throw_unless(er::invalid_swap_status(), status == 0);
         
         ;; Time validation and amount handling
