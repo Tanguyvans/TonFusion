@@ -34,7 +34,7 @@ export async function run(provider: NetworkProvider) {
     const queryId = BigInt(input);
 
     // Swap ID: cell.hash() 
-    const secret = await ui.input('Enter secret for Swap ID: ');
+    const secret = await ui.input('Secret for Swap ID: ');
     const secretCell = beginCell().storeBuffer(Buffer.from(secret)).endCell();
     const cellHash = secretCell.hash().toString('hex');
     const swapId = BigInt('0x' + cellHash);

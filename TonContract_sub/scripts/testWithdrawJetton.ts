@@ -21,10 +21,10 @@ export async function run(provider: NetworkProvider) {
     const recipientAddr = senderAddr;
     
     // Query ID input
-    const queryId = BigInt(await ui.input('Enter query ID (e.g., 123): '));
+    const queryId = BigInt(await ui.input('Query ID (decimal): '));
     
     // Secret input for Swap ID
-    const secret = await ui.input('Enter secret for Swap ID: ');
+    const secret = await ui.input('Secret for Swap ID: ');
     // Build secret cell for contract (as ref)
     const secretCell = beginCell().storeBuffer(Buffer.from(secret)).endCell();
     // Amount input
