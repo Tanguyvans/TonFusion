@@ -19,11 +19,12 @@ export async function run(provider: NetworkProvider) {
     console.log(`Query ID: ${queryId}`);
     console.log(`Query ID (hex): 0x${queryId.toString(16)}`);
     
-    // Swap ID generation (256-bit)
-    // Generate swapId based on queryId (using queryId as the lower 64 bits)
-    const swapId = BigInt('0x' + '0'.repeat(40) + queryId.toString(16).padStart(16, '0'));
+    // Swap ID (fixed 256-bit value)
+    const swapId = BigInt('0x' + '0'.repeat(64));  // 256-bit: 0x00...00
     console.log(`Swap ID: ${swapId}`);
-    console.log(`Swap ID (hex): 0x${swapId.toString(16)}`);
+    // Pad the hex string to ensure it's always 64 characters (256 bits)
+    const hexString = swapId.toString(16).padStart(64, '0');
+    console.log(`Swap ID (hex): 0x${hexString}`);
     
     // User address input
     let userAddr: Address;
@@ -107,11 +108,12 @@ export async function run(provider: NetworkProvider) {
         console.log(`1. Tonviewer: get_swaps_info_debug(${queryId})`);
         console.log('2. The result should be as follows:');
         console.log('   - The first value is -0x1 (found)');
-        console.log(`   - The second value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
-        console.log(`   - The third value is ${userAddr.toString()} (TON address)`);
-        console.log(`   - The fourth value is ${amount} (amount in nanoTON)`);
-        console.log(`   - The fifth value is ${deadline} (deadline as UNIX timestamp)`);
-        console.log('   - The sixth value is 0 (status: 0=init, 1=completed, 2=refunded)');
+        console.log(`   - The second value is 0x${swapId.toString(16).padStart(64, '0')} (Swap ID, 256bit hex)`);
+        console.log(`   - The third value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
+        console.log(`   - The fourth value is ${userAddr.toString()} (TON address)`);
+        console.log(`   - The fifth value is ${amount} (amount in nanoTON)`);
+        console.log(`   - The sixth value is ${deadline} (deadline as UNIX timestamp)`);
+        console.log('   - The seventh value is 0 (status: 0=init, 1=completed, 2=refunded)');
     } catch (error) {
         console.error('Error sending message:', error instanceof Error ? error.message : String(error));
     }
