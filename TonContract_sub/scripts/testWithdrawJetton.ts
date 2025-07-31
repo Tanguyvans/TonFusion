@@ -23,13 +23,10 @@ export async function run(provider: NetworkProvider) {
     // Query ID input
     const queryId = BigInt(await ui.input('Enter query ID (e.g., 123): '));
     
-    // Swap ID (SHA256(secret))
+    // Secret input for Swap ID
     const secret = await ui.input('Enter secret for Swap ID: ');
-    const crypto = await import('crypto');
-    const hash = crypto.createHash('sha256').update(secret).digest('hex');
-    const swapId = BigInt('0x' + hash);
-    const hexString = hash.padStart(64, '0');
-    console.log(`Swap ID (hex): 0x${hexString}`);
+    // Build secret cell for contract (as ref)
+    const secretCell = beginCell().storeBuffer(Buffer.from(secret)).endCell();
     // Amount input
     const amount = BigInt(await ui.input('Amount of Jettons to withdraw (in basic units): '));
 
@@ -49,13 +46,13 @@ export async function run(provider: NetworkProvider) {
     try {
         console.log('\nSending withdraw_jetton transaction...');
         
-        // Build the message
+        // Build the message (send secret as cell)
         const messageBody = beginCell()
             .storeUint(Op.withdraw_jetton, 32)  // op code
-            .storeUint(queryId, 64)              // query_id
-            .storeAddress(recipientAddr)         // to_address
-            .storeCoins(amount)                  // amount
-            .storeUint(swapId, 256)              // swap_id (256-bit)
+            .storeUint(queryId, 64)             // query_id
+            .storeAddress(recipientAddr)        // to_address
+            .storeCoins(amount)                 // amount
+            .storeRef(secretCell)               // secret as cell (ref)
             .endCell();
         
         // Send the transaction 
