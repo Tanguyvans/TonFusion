@@ -14,21 +14,20 @@ export async function run(provider: NetworkProvider) {
     // Get tonClient
     const tonClient = getTonClient(provider.network() === 'custom' ? 'mainnet' : 'testnet');
     
-    // Get Jetton master address
-    const jettonMasterAddr = await ui.inputAddress('Jetton Master address: ');
-    
-    // Destination address (Vault contract)
-    const destinationAddr = await ui.inputAddress('Destination address (Vault contract): ');
-    
-    // Calculate Jetton wallet address
-    const jettonWalletAddr = await getJettonWalletAddr(tonClient, jettonMasterAddr, provider.sender().address!);
-    
     // Get sender address
     const senderAddr = provider.sender().address;
     if (!senderAddr) {
         throw new Error('Failed to get sender address');
     }
+    // Jetton master address (fixed)
+    const jettonMasterAddr = 'kQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPsyy'; // USDT Jetton master address on TON testnet
     
+    // Calculate Jetton wallet address
+    const jettonWalletAddr = await getJettonWalletAddr(tonClient, Address.parse(jettonMasterAddr), provider.sender().address!);
+    
+    // Destination address (Vault contract)
+    const destinationAddr = await ui.inputAddress('Destination address (Vault contract): ');
+
     // Query ID input
     const input = await ui.input('Query ID to input (decimal): ');
     const queryId = BigInt(input);
@@ -45,10 +44,22 @@ export async function run(provider: NetworkProvider) {
     const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
     const amount = BigInt(amountStr);
     
-    // Fixed Maker's Ethereum address
-    const sampleEthAddr = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
-    const ethAddr = BigInt(sampleEthAddr);
-    const ethAddrBuffer = Buffer.from('d8dA6BF26964aF9D7eEd9e03E53415D37aA96045', 'hex'); // Convert to Buffer for the message
+    // Ethereum address selection
+    const choice = await ui.input("Select Ethereum address:\n1. Enter custom address\n2. Use Vitalik Buterin (0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)\n\nEnter 1 or 2: ");
+    
+    let ethAddr, ethAddrBuffer;
+    if (choice === '1') {
+        // Custom address input
+        const ethAddrInput = await ui.input("Ethereum address (with 0x): ");
+        const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
+        ethAddr = BigInt('0x' + cleanEthAddr);
+        ethAddrBuffer = Buffer.from(cleanEthAddr, 'hex');
+    } else {
+        // Use Vitalik's address as sample
+        const sampleEthAddr = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+        ethAddr = BigInt(sampleEthAddr);
+        ethAddrBuffer = Buffer.from(sampleEthAddr.slice(2), 'hex');
+    }
     
     // Fixed deadlines
     const withdrawalDeadline = BigInt(Math.floor(Date.now() / 1000) + (1 * 60 * 60)); // 1 hour from now

@@ -36,11 +36,20 @@ export async function run(provider: NetworkProvider) {
         throw new Error('Failed to get sender address');
     }
 
-    // Maker's Ethereum address input (160-bit)
-    const ethAddrInput = await ui.input("Ethereum address (with 0x): ");
-    // Remove '0x' prefix if present and convert to BigInt
-    const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
-    const ethAddr = BigInt('0x' + cleanEthAddr);
+    // Ethereum address selection
+    const choice = await ui.input("Select Ethereum address:\n1. Enter custom address\n2. Use Vitalik Buterin (0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)\n\nEnter 1 or 2: ");
+    
+    let ethAddr;
+    if (choice === '1') {
+        // Custom address input
+        const ethAddrInput = await ui.input("Ethereum address (with 0x): ");
+        const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
+        ethAddr = BigInt('0x' + cleanEthAddr);
+    } else {
+        // Use Vitalik's address as sample
+        const sampleEthAddr = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+        ethAddr = BigInt(sampleEthAddr);
+    }
     console.log(`Ethereum address: 0x${ethAddr.toString(16)}`);
 
     // Amount input (nano)

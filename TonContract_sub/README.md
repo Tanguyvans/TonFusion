@@ -38,7 +38,6 @@ npx blueprint run
 npx blueprint run
 ```
 1. testDepositJetton
-   - Jetton Master address: kQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPsyy (USDT on testnet)
    - Destination address (Vault contract): Address of the vault deployed in Deploy & Initiate
    - Query ID: decimal value of your choice
    - Secret for Swap ID: string value of your choice, used to lock the asset
