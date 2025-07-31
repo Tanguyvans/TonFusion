@@ -167,6 +167,72 @@ time_locks: {
 }
 ```
 
+### TON Escrow Contract Storage (by Masa):
+```
+   storage::stopped,
+   storage::jetton_master,
+   storage::jetton_wallet,
+   storage::dict_swaps_info
+```
+```
+storage::dict_swaps_info
+        64,
+        query_id,
+        begin_cell()
+            .store_uint(swap_id, 256) ;; Store swap_id as 256-bit int
+            .store_uint(eth_addr, 160) ;; Maker's Ethereum address (160-bit)
+            .store_slice(ton_addr) ;; Maker's TON address (MsgAddress)
+            .store_coins(amount)
+            .store_uint(creation_timestamp, 64)
+            .store_uint(deadline, 64)
+            .store_uint(status, 2) ;; status (2-bit: 0=init, 1=completed, 2=refunded)
+```
+#### TON Escrow Contract Storage Design (English)
+
+**Storage Structure:**
+```plaintext
+storage::stopped,
+storage::jetton_master,
+storage::jetton_wallet,
+storage::dict_swaps_info
+```
+Each swap entry in `storage::dict_swaps_info` is structured as:
+```plaintext
+storage::dict_swaps_info
+    64,
+    query_id,
+    begin_cell()
+        .store_uint(swap_id, 256)         ;; 256-bit unique swap identifier
+        .store_uint(eth_addr, 160)        ;; Ethereum address (160-bit)
+        .store_slice(ton_addr)            ;; TON address (MsgAddress)
+        .store_coins(amount)              ;; Swap amount
+        .store_uint(creation_timestamp, 64)
+        .store_uint(deadline, 64)
+        .store_uint(status, 2)            ;; 2-bit status: 0=init, 1=completed, 2=refunded
+```
+
+**Address Field Usage: Flexible Role Mapping**
+
+The contract storage uses just two address fields—`eth_addr` and `ton_addr`—to flexibly represent either the maker or taker, depending on which chain initiates the swap.
+
+- **Swap Initiated from TON:**
+  - `ton_addr` = Maker's TON address (the party locking assets on TON)
+  - `eth_addr` = Taker's Ethereum address (the party locking assets on Ethereum)
+
+- **Swap Initiated from Ethereum:**
+  - `eth_addr` = Maker's Ethereum address (the party locking assets on Ethereum)
+  - `ton_addr` = Taker's TON address (the party locking assets on TON)
+
+This dual-field design allows the contract to handle both swap directions (TON→ETH and ETH→TON) with a single, simple storage layout. The meaning of each address field is determined by the context of swap initiation.
+
+**Example Mapping Table:**
+
+| Swap Direction | `ton_addr` (TON address)         | `eth_addr` (Ethereum address)      |
+|----------------|----------------------------------|------------------------------------|
+| TON-initiated  | Maker (locks on TON)             | Taker (locks on ETH)               |
+| ETH-initiated  | Taker (locks on TON)             | Maker (locks on ETH)               |
+
+
 ## Test Scenario Walkthrough
 
 The test in `main.spec.ts` demonstrates a complete swap:
