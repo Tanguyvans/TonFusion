@@ -9,7 +9,7 @@
 
 ## How to Use
 
-### Package install
+### Package Installation
 ```bash
 npm install
 ```
@@ -25,7 +25,7 @@ npx blueprint build
 npx blueprint test
 ```
 
-### Deploy & Initiate
+### Deploy & Initialize
 ```bash
 npx blueprint run
 ```
@@ -33,23 +33,29 @@ npx blueprint run
 2. initVault
    - Vault contract address: Address of the vault deployed in step 1
 
-### Test Vault Operations by Scripts
+### Test Vault Operations Using Scripts
 ```bash
 npx blueprint run
 ```
 1. testTransferNotification_realJettonTransfer
    - Jetton Master address: kQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPsyy (USDT on testnet)
    - Destination address (Vault contract): Address of the vault deployed in Deploy & Initiate
+   - Query ID: decimal value of your choice
+   - Secret for Swap ID: string value of your choice, used to lock the asset
    > Note: Ensure your wallet has enough USDT for transfer and TON for gas.
 
    > 1000000 nano = 1 USDT (decimals = 6), 1 TON = 1000000000 nano (decimals = 9)
 
 2. testWithdrawJetton
    - Vault contract address: Address of the vault deployed in Deploy & Initiate
-   - Recipient address (to receive Jettons): Your wallet address
+   - Query ID: must match the Query ID used in testTransferNotification_realJettonTransfer
+   - Secret for Swap ID: must match the Secret for Swap ID used in testTransferNotification_realJettonTransfer
+
+**Withdrawal is only possible when both Query ID and Secret for Swap ID match**
 
 ### Sample Vault Address
-[https://testnet.tonviewer.com/kQDT_l6aeZu1JrKQvN2SEatwsl6dIvwTscWk8HtZdEpVUWBH](https://testnet.tonviewer.com/kQDT_l6aeZu1JrKQvN2SEatwsl6dIvwTscWk8HtZdEpVUWBH)
+[kQB_ilQesKSefJdv3oUb-2YhdyvrpRcjo1WDfLH1eKdkRhbd](https://testnet.tonviewer.com/kQB_ilQesKSefJdv3oUb-2YhdyvrpRcjo1WDfLH1eKdkRhbd?section=method)
+
 
 
 
