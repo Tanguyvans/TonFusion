@@ -119,9 +119,8 @@
         throw_unless(er::invalid_query_id(), ethereum_user != 0);
         throw_unless(er::invalid_swap_id(), stored_swap_id == swap_id);
         throw_unless(er::invalid_swap_status(), status == 0);
-        
-        ;; deadlineの条件を一旦削除
         throw_unless(er::invalid_swap_time(), now() >= creation_timestamp);
+        throw_unless(er::invalid_swap_time(), now() <= deadline);
         throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
         
         ;; Create jetton transfer message body

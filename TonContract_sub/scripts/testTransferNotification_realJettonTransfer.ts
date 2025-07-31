@@ -29,50 +29,31 @@ export async function run(provider: NetworkProvider) {
         throw new Error('Failed to get sender address');
     }
     
-    console.log(`\nSender address: ${senderAddr.toString()}`);
     // Query ID input
     const input = await ui.input('Query ID to input (decimal): ');
     const queryId = BigInt(input);
-    console.log(`Query ID (decimal): ${queryId}`);
-    console.log(`Query ID (hex): 0x${queryId.toString(16)}`);
 
-    // Swap ID: cell.hash() (FunCのslice_hashと一致させる)
+    // Swap ID: cell.hash() 
     const secret = await ui.input('Enter secret for Swap ID: ');
-    const { beginCell } = await import('@ton/core');
     const secretCell = beginCell().storeBuffer(Buffer.from(secret)).endCell();
     const cellHash = secretCell.hash().toString('hex');
     const swapId = BigInt('0x' + cellHash);
     const hexString = cellHash.padStart(64, '0');
-    // --- ここからデバッグ出力追加 ---
-    const secretBuf = Buffer.from(secret);
-    const padded = Buffer.alloc(8);
-    secretBuf.copy(padded);
-    console.log('--- Debug for FunC deadline field ---');
-    console.log('secret:', secret);
-    console.log('secret bytes:', secretBuf.toString('hex'));
-    console.log('padded (8 bytes):', padded.toString('hex'));
-    console.log('as int (BigInt):', BigInt('0x' + padded.toString('hex')));
-    console.log('swap_id (cell.hash):', '0x' + cellHash);
-    // --- ここまでデバッグ出力追加 ---
     console.log(`Swap ID (hex): 0x${hexString}`);
     
     // Get amount from user input
     const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
     const amount = BigInt(amountStr);
-    console.log(`Amount: ${amount} nano`);
     
     // Fixed Ethereum address
     const sampleEthAddr = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
     const ethereumUser = BigInt(sampleEthAddr);
-    console.log(`Ethereum user: ${sampleEthAddr}`);
-    
-    // Convert to Buffer for the message
-    const ethereumUserBuffer = Buffer.from('d8dA6BF26964aF9D7eEd9e03E53415D37aA96045', 'hex');
+    const ethereumUserBuffer = Buffer.from('d8dA6BF26964aF9D7eEd9e03E53415D37aA96045', 'hex'); // Convert to Buffer for the message
     
     // Fixed Deadline (24 hours from now)
     const deadline = BigInt(Math.floor(Date.now() / 1000) + (24 * 60 * 60));
-    console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
     
+    // Fixed Ton Amount
     const forwardTonAmount = toNano('0.025'); // 0.025 TON for forward message (must be bigger than required_gas in op::transfer_notification(0.02 TON))
     const gasAmount = toNano('0.05'); // 0.05 TON for gas
     
@@ -161,11 +142,6 @@ export async function run(provider: NetworkProvider) {
         console.log('2. The result should be as follows:');
         console.log('   - The first value is -0x1 (found)');
         console.log(`   - The second value is 0x${hexString} (Swap ID, 256bit hex)`);
-        console.log('     (In the cell value, after the TON BOC cell header, the actual swapId you set will appear.');
-        console.log('      Example:');
-        console.log('        cell: b5ee9c720101010100220000401111111111111111111111111111111111111111111111111111111111111111');
-        console.log('        cell: b5ee9c720101010100220000400000000000000000000000000000000000000000000000000000000000000000');
-        console.log('     )');
         console.log(`   - The third value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
         console.log(`   - The fourth value is ${senderAddr.toString()} (TON address)`);
         console.log(`   - The fifth value is ${amount} (amount in nanoTON)`);
