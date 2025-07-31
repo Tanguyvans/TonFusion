@@ -1,0 +1,38 @@
+{
+  "name": "ton-evm-bridge-cli",
+  "version": "1.0.0",
+  "description": "CLI for interacting with TON and EVM bridge contracts",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.ts",
+    "cli": "ts-node src/index.ts"
+  },
+  "keywords": [
+    "ton",
+    "evm",
+    "bridge",
+    "cli",
+    "blockchain"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@ton/blueprint": "^0.25.0",
+    "@ton/core": "^0.60.0",
+    "@ton/crypto": "^3.3.0",
+    "@ton/ton": "^15.1.0",
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.4",
+    "inquirer": "^8.2.6"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^8.2.10",
+    "@types/node": "^22.10.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
