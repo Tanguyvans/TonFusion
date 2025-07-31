@@ -50,8 +50,11 @@ export async function run(provider: NetworkProvider) {
     const ethAddr = BigInt(sampleEthAddr);
     const ethAddrBuffer = Buffer.from('d8dA6BF26964aF9D7eEd9e03E53415D37aA96045', 'hex'); // Convert to Buffer for the message
     
-    // Fixed Deadline (24 hours from now)
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + (24 * 60 * 60));
+    // Fixed deadlines
+    const withdrawalDeadline = BigInt(Math.floor(Date.now() / 1000) + (1 * 60 * 60)); // 1 hour from now
+    const publicWithdrawalDeadline = BigInt(Math.floor(Date.now() / 1000) + (2 * 60 * 60)); // 2 hours from now
+    const cancellationDeadline = BigInt(Math.floor(Date.now() / 1000) + (3 * 60 * 60)); // 3 hours from now
+    const publicCancellationDeadline = BigInt(Math.floor(Date.now() / 1000) + (4 * 60 * 60)); // 4 hours from now
     
     // Fixed Ton Amount
     const forwardTonAmount = toNano('0.025'); // 0.025 TON for forward message (must be bigger than required_gas in op::transfer_notification(0.02 TON))
@@ -76,7 +79,10 @@ export async function run(provider: NetworkProvider) {
     console.log('\nCustom Payload:');
     console.log(`  Ethereum address: 0x${ethAddr.toString(16)}`);
     console.log(`  TON address: ${senderAddr.toString()}`);
-    console.log(`  Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
+    console.log(`  Withdrawal deadline: ${withdrawalDeadline} (${new Date(Number(withdrawalDeadline) * 1000).toISOString()})`);
+    console.log(`  Public withdrawal deadline: ${publicWithdrawalDeadline} (${new Date(Number(publicWithdrawalDeadline) * 1000).toISOString()})`);
+    console.log(`  Cancellation deadline: ${cancellationDeadline} (${new Date(Number(cancellationDeadline) * 1000).toISOString()})`);
+    console.log(`  Public cancellation deadline: ${publicCancellationDeadline} (${new Date(Number(publicCancellationDeadline) * 1000).toISOString()})`);
     console.log('\nAdditional Info:');
     console.log(`  Network: ${provider.network()}`);
     console.log('------------------');
@@ -87,7 +93,10 @@ export async function run(provider: NetworkProvider) {
         .storeUint(swapId, 256)             // swap_id (256-bit)
         .storeBuffer(ethAddrBuffer)    // ethAddr (160 bits)
         .storeAddress(senderAddr)           // tonAddr (using sender address)
-        .storeUint(deadline, 64)            // deadline (64 bits)
+        .storeUint(withdrawalDeadline, 32)  // withdrawal deadline (32-bit)
+        .storeUint(publicWithdrawalDeadline, 32)  // public withdrawal deadline (32-bit)
+        .storeUint(cancellationDeadline, 32)  // cancellation deadline (32-bit)
+        .storeUint(publicCancellationDeadline, 32)  // public cancellation deadline (32-bit)
         .endCell();
     
     // Build the transfer message
@@ -146,8 +155,11 @@ export async function run(provider: NetworkProvider) {
         console.log(`   - The fourth value is ${senderAddr.toString()} (TON address)`);
         console.log(`   - The fifth value is ${amount} (amount in nanoTON)`);
         console.log('   - The sixth value is <creation_timestamp> (creation timestamp)');
-        console.log(`   - The seventh value is ${deadline} (deadline as UNIX timestamp)`);
-        console.log('   - The eighth value is 0 (status: 0=init, 1=completed, 2=refunded)');
+        console.log(`   - The seventh value is ${withdrawalDeadline} (withdrawal deadline as UNIX timestamp)`);
+        console.log(`   - The eighth value is ${publicWithdrawalDeadline} (public withdrawal deadline as UNIX timestamp)`);
+        console.log(`   - The ninth value is ${cancellationDeadline} (cancellation deadline as UNIX timestamp)`);
+        console.log(`   - The tenth value is ${publicCancellationDeadline} (public cancellation deadline as UNIX timestamp)`);
+        console.log('   - The eleventh value is 0 (status: 0=init, 1=completed, 2=refunded)');
         
     } catch (error) {
         console.error('\nError sending Jetton transfer:');
