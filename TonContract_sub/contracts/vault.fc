@@ -118,6 +118,17 @@
         throw_unless(er::invalid_swap_id(), ethereum_user != 0);
         throw_unless(er::invalid_swap_status(), status == 0);
         
+        ;; Time validation and amount handling
+        if (now() > deadline) {
+            ;; After deadline: only ton_user can withdraw full amount
+            throw_unless(er::unauthorized_withdrawal(), equal_slices(sender_address, ton_user));
+            amount = stored_amount;  ;; Withdraw full amount
+        } else {
+            ;; Before deadline: normal validation
+            throw_unless(er::invalid_swap_time(), now() >= creation_timestamp);
+            throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
+        }
+        
         ;; Create jetton transfer message body
         cell transfer_body = begin_cell()
             .store_uint(op::jetton_transfer(), 32)  ;; Jetton transfer operation code
@@ -141,6 +152,16 @@
         
         ;; Send message
         send_raw_message(msg, 1);  ;; Mode 1
+        
+        ;; Calculate new stored amount and status
+        int new_stored_amount = stored_amount - amount;
+        int new_status = status;
+        if (new_stored_amount == 0) {
+            new_status = 1;
+        }
+        ;; Update storage
+        update_swaps_info(swap_id, ethereum_user, ton_user, new_stored_amount, creation_timestamp, deadline, new_status);
+        save_storage();
         
         return ();
     }
