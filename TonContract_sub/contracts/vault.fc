@@ -43,13 +43,14 @@
         throw_unless(er::insufficient_gas(), msg_value >= required_gas);
         
         ;; Get parameters
+        slice swap_id = in_msg_body~load_bits(256);    ;; Swap ID (256 bits)
         int ethereum_user = in_msg_body~load_uint(160);  ;; Ethereum address (160-bit)
         slice ton_user = in_msg_body~load_msg_addr();    ;; TON address (MsgAddress)
         int amount = in_msg_body~load_coins();           ;; Amount to deposit
         int deadline = in_msg_body~load_uint(64);        ;; Deadline (UNIX timestamp)
         
         ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(query_id, ethereum_user, ton_user, amount, now(), deadline, 0);
+        update_swaps_info(query_id, swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
         
         save_storage();
         return ();
@@ -84,12 +85,13 @@
             int op_code = payload_slice~load_uint(32); ;; Check op_code
             
             if (op_code == op::register_deposit()) { ;; Only process if it's register_deposit
+                slice swap_id = payload_slice~load_bits(256);    ;; Swap ID (256 bits)
                 ethereum_user = payload_slice~load_uint(160);  ;; Ethereum address (160 bits)
                 ton_user = payload_slice~load_msg_addr();      ;; TON address (MsgAddress)
                 deadline = payload_slice~load_uint(64);        ;; Deadline (64 bits)
                 
                 ;; Only update storage if forward_payload is valid
-                update_swaps_info(query_id, ethereum_user, ton_user, amount, now(), deadline, 0);
+                update_swaps_info(query_id, swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
                 save_storage();
             }
         }
@@ -114,7 +116,7 @@
         int amount = in_msg_body~load_coins();           ;; Amount
         
         ;; Check if swap exists
-        (int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
+        (slice swap_id, int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
         throw_unless(er::invalid_swap_id(), ethereum_user != 0);
         throw_unless(er::invalid_swap_status(), status == 0);
         
@@ -160,7 +162,7 @@
             new_status = 1;
         }
         ;; Update storage
-        update_swaps_info(query_id, ethereum_user, ton_user, new_stored_amount, creation_timestamp, deadline, new_status);
+        update_swaps_info(query_id, swap_id, ethereum_user, ton_user, new_stored_amount, creation_timestamp, deadline, new_status);
         save_storage();
         
         return ();
@@ -267,12 +269,13 @@ slice get_wallet_address(slice admin_address) method_id {
 }
 
 ;; Debug getter to retrieve SwapsInfoID details
-(int, int, slice, int, int, int, int) get_swaps_info_debug(int query_id) method_id {
+(int, slice, int, slice, int, int, int, int) get_swaps_info_debug(int query_id) method_id {
     load_storage();
-    (int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
+    (slice swap_id, int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
     int found = ~ equal_slices(ton_user, addr_none());
     return (
         found,
+        swap_id,
         ethereum_user,
         ton_user,
         amount,
