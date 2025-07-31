@@ -25,7 +25,7 @@
     int fwd_fee = muldiv(cs~load_coins(), 3, 2); ;; we use message fwd_fee for estimation of forward_payload costs
 
     int op = in_msg_body~load_uint(32);
-    int swap_id = in_msg_body~load_uint(64);
+    int query_id = in_msg_body~load_uint(64);
 
     load_storage();
 
@@ -49,7 +49,7 @@
         int deadline = in_msg_body~load_uint(64);        ;; Deadline (UNIX timestamp)
         
         ;; Register SwapsInfoID with initial status=0 (init)
-        update_swaps_info(swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
+        update_swaps_info(query_id, ethereum_user, ton_user, amount, now(), deadline, 0);
         
         save_storage();
         return ();
@@ -89,7 +89,7 @@
                 deadline = payload_slice~load_uint(64);        ;; Deadline (64 bits)
                 
                 ;; Only update storage if forward_payload is valid
-                update_swaps_info(swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
+                update_swaps_info(query_id, ethereum_user, ton_user, amount, now(), deadline, 0);
                 save_storage();
             }
         }
@@ -114,7 +114,7 @@
         int amount = in_msg_body~load_coins();           ;; Amount
         
         ;; Check if swap exists
-        (int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(swap_id);
+        (int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
         throw_unless(er::invalid_swap_id(), ethereum_user != 0);
         throw_unless(er::invalid_swap_status(), status == 0);
         
@@ -132,7 +132,7 @@
         ;; Create jetton transfer message body
         cell transfer_body = begin_cell()
             .store_uint(op::jetton_transfer(), 32)  ;; Jetton transfer operation code
-            .store_uint(swap_id, 64)               ;; query_id
+            .store_uint(query_id, 64)               ;; query_id
             .store_coins(amount)                   ;; Amount
             .store_slice(to_address)               ;; To address
             .store_slice(sender_address)           ;; Response address
@@ -160,7 +160,7 @@
             new_status = 1;
         }
         ;; Update storage
-        update_swaps_info(swap_id, ethereum_user, ton_user, new_stored_amount, creation_timestamp, deadline, new_status);
+        update_swaps_info(query_id, ethereum_user, ton_user, new_stored_amount, creation_timestamp, deadline, new_status);
         save_storage();
         
         return ();
@@ -223,7 +223,7 @@
             .store_coins(0)
             .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
             .store_uint(op::take_wallet_address(), 32)
-            .store_uint(swap_id, 64);
+            .store_uint(query_id, 64);
 
         if (is_resolvable?(owner_address)) {
             msg = msg.store_slice(calculate_user_jetton_wallet_address(owner_address, my_address(), storage::jetton_wallet_code));
@@ -267,9 +267,9 @@ slice get_wallet_address(slice admin_address) method_id {
 }
 
 ;; Debug getter to retrieve SwapsInfoID details
-(int, int, slice, int, int, int, int) get_swaps_info_debug(int swap_id) method_id {
+(int, int, slice, int, int, int, int) get_swaps_info_debug(int query_id) method_id {
     load_storage();
-    (int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) = load_swaps_info(swap_id);
+    (int ethereum_user, slice ton_user, int amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
     int found = ~ equal_slices(ton_user, addr_none());
     return (
         found,
