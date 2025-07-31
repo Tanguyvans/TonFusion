@@ -248,12 +248,12 @@ export class Vault implements Contract {
     /**
      * Get swap info by ID
      * @param provider Contract provider
-     * @param swapId Swap ID
+     * @param queryId Query ID
      * @returns SwapsInfo or null if not found
      */
-    async getSwapInfo(provider: ContractProvider, swapId: bigint): Promise<SwapsInfo | null> {
+    async getSwapInfo(provider: ContractProvider, queryId: bigint): Promise<SwapsInfo | null> {
         const swapsInfo = await this.getSwapsInfo(provider);
-        return swapsInfo.get(swapId) || null;
+        return swapsInfo.get(queryId) || null;
     }
 
     /**
