@@ -45,10 +45,10 @@ export async function run(provider: NetworkProvider) {
     const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
     const amount = BigInt(amountStr);
     
-    // Fixed Ethereum address
-    const sampleEthAddr = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
-    const ethereumUser = BigInt(sampleEthAddr);
-    const ethereumUserBuffer = Buffer.from('d8dA6BF26964aF9D7eEd9e03E53415D37aA96045', 'hex'); // Convert to Buffer for the message
+    // Fixed Maker's Ethereum address
+    const sampleMakerEthAddr = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+    const makerEthAddr = BigInt(sampleMakerEthAddr);
+    const makerEthAddrBuffer = Buffer.from('d8dA6BF26964aF9D7eEd9e03E53415D37aA96045', 'hex'); // Convert to Buffer for the message
     
     // Fixed Deadline (24 hours from now)
     const deadline = BigInt(Math.floor(Date.now() / 1000) + (24 * 60 * 60));
@@ -74,8 +74,8 @@ export async function run(provider: NetworkProvider) {
     console.log(`  Forward TON:   ${forwardTonAmount} nano (${Number(forwardTonAmount) / 1e9} TON)`);
     console.log(`  Gas Allocated: ${gasAmount} nano (${Number(gasAmount) / 1e9} TON)`);
     console.log('\nCustom Payload:');
-    console.log(`  Ethereum User: 0x${ethereumUser.toString(16)}`);
-    console.log(`  TON User: ${senderAddr.toString()}`);
+    console.log(`  Maker's Ethereum address: 0x${makerEthAddr.toString(16)}`);
+    console.log(`  Maker's TON address: ${senderAddr.toString()}`);
     console.log(`  Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
     console.log('\nAdditional Info:');
     console.log(`  Network: ${provider.network()}`);
@@ -85,8 +85,8 @@ export async function run(provider: NetworkProvider) {
     const forwardPayload = beginCell()
         .storeUint(Op.register_deposit, 32) // op::register_deposit
         .storeUint(swapId, 256)             // swap_id (256-bit)
-        .storeBuffer(ethereumUserBuffer)    // ethereum_user (160 bits)
-        .storeAddress(senderAddr)           // ton_user (using sender address)
+        .storeBuffer(makerEthAddrBuffer)    // makerEthAddr (160 bits)
+        .storeAddress(senderAddr)           // makerTonAddr (using sender address)
         .storeUint(deadline, 64)            // deadline (64 bits)
         .endCell();
     
@@ -142,8 +142,8 @@ export async function run(provider: NetworkProvider) {
         console.log('2. The result should be as follows:');
         console.log('   - The first value is -0x1 (found)');
         console.log(`   - The second value is 0x${hexString} (Swap ID, 256bit hex)`);
-        console.log(`   - The third value is 0x${ethereumUser.toString(16)} (Ethereum address)`);
-        console.log(`   - The fourth value is ${senderAddr.toString()} (TON address)`);
+        console.log(`   - The third value is 0x${makerEthAddr.toString(16)} (Maker's Ethereum address)`);
+        console.log(`   - The fourth value is ${senderAddr.toString()} (Maker's TON address)`);
         console.log(`   - The fifth value is ${amount} (amount in nanoTON)`);
         console.log('   - The sixth value is <creation_timestamp> (creation timestamp)');
         console.log(`   - The seventh value is ${deadline} (deadline as UNIX timestamp)`);
