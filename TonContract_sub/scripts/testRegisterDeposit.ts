@@ -20,7 +20,6 @@ export async function run(provider: NetworkProvider) {
     
     // Swap ID (fixed 256-bit value: all 1)
     const swapId = BigInt('0x' + '1'.repeat(64));  // 256-bit: 0x111...111
-    console.log(`Swap ID: ${swapId}`);
     // Pad the hex string to ensure it's always 64 characters (256 bits)
     const hexString = swapId.toString(16).padStart(64, '0');
     console.log(`Swap ID (hex): 0x${hexString}`);
