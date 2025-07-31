@@ -110,10 +110,12 @@
         ;; Load parameters
         slice to_address = in_msg_body~load_msg_addr();  ;; To address
         int amount = in_msg_body~load_coins();           ;; Amount
+        slice swap_id = in_msg_body~load_bits(256);      ;; swap_id (256-bit)
         
         ;; Check if swap exists
-        (slice swap_id, int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
+        (slice stored_swap_id, int ethereum_user, slice ton_user, int stored_amount, int creation_timestamp, int deadline, int status) = load_swaps_info(query_id);
         throw_unless(er::invalid_query_id(), ethereum_user != 0);
+        throw_unless(er::invalid_swap_id(), equal_slices(stored_swap_id, swap_id));
         throw_unless(er::invalid_swap_status(), status == 0);
         
         ;; Time validation and amount handling
