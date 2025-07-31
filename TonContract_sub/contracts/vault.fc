@@ -75,10 +75,6 @@
         cell forward_payload = in_msg_body~load_maybe_ref(); ;; Skip custom_payload and get forward_payload
         cell custom_payload = in_msg_body~load_maybe_ref(); ;; Skip forward_payload and get custom_payload
         
-        int ethereum_user = 0;
-        slice ton_user = sender_address;  ;; Default to sender address if not provided
-        int deadline = 0;
-        
         ;; Parse forward_payload if it exists
         if (~ forward_payload.null?()) {
             slice payload_slice = forward_payload.begin_parse();
@@ -86,9 +82,9 @@
             
             if (op_code == op::register_deposit()) { ;; Only process if it's register_deposit
                 slice swap_id = payload_slice~load_bits(256);    ;; Swap ID (256 bits)
-                ethereum_user = payload_slice~load_uint(160);  ;; Ethereum address (160 bits)
-                ton_user = payload_slice~load_msg_addr();      ;; TON address (MsgAddress)
-                deadline = payload_slice~load_uint(64);        ;; Deadline (64 bits)
+                int ethereum_user = payload_slice~load_uint(160);  ;; Ethereum address (160 bits)
+                slice ton_user = payload_slice~load_msg_addr();      ;; TON address (MsgAddress)
+                int deadline = payload_slice~load_uint(64);        ;; Deadline (64 bits)
                 
                 ;; Only update storage if forward_payload is valid
                 update_swaps_info(query_id, swap_id, ethereum_user, ton_user, amount, now(), deadline, 0);
