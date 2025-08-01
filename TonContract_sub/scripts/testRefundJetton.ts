@@ -6,7 +6,7 @@ import { Op } from '../utils/Constants';
 export async function run(provider: NetworkProvider) {
     const ui = provider.ui();
     
-    console.log('\nVault Withdraw Jetton Tool');
+    console.log('\nVault Refund Jetton Tool');
     console.log('---------------------------');
     
     // Vault address input
@@ -28,7 +28,7 @@ export async function run(provider: NetworkProvider) {
     // Build secret cell for contract (as ref)
     const secretCell = beginCell().storeBuffer(Buffer.from(secret)).endCell();
     // Amount input
-    const amount = BigInt(await ui.input('Amount of Jettons to withdraw in nano (1USDT = 1000000): '));
+    const amount = BigInt(await ui.input('Amount of Jettons to refund in nano (1USDT = 1000000): '));
 
     console.log('\nTransaction Details:');
     console.log('------------------');
@@ -44,11 +44,11 @@ export async function run(provider: NetworkProvider) {
     }
     
     try {
-        console.log('\nSending withdraw_jetton transaction...');
+        console.log('\nSending refund_jetton transaction...');
         
         // Build the message (send secret as cell)
         const messageBody = beginCell()
-            .storeUint(Op.withdraw_jetton, 32)  // op code (withdraw_jetton)
+            .storeUint(Op.refund_jetton, 32)  // op code (refund_jetton)
             .storeUint(queryId, 64)             // query_id (64-bit)
             .storeAddress(recipientAddr)        // recipient address (MsgAddress)
             .storeCoins(amount)                 // amount (coins)
@@ -63,7 +63,7 @@ export async function run(provider: NetworkProvider) {
             sendMode: 1,  // Pay fee separately
         });
         
-        console.log('\n✅ withdraw_jetton transaction sent successfully!');
+        console.log('\n✅ refund_jetton transaction sent successfully!');
         console.log('Check the transaction in the explorer.');
         
     } catch (error) {

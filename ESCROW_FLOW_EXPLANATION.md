@@ -185,8 +185,11 @@ storage::dict_swaps_info
         .store_uint(eth_addr, 160)        ;; Ethereum address (160-bit)
         .store_slice(ton_addr)            ;; TON address (MsgAddress)
         .store_coins(amount)              ;; Swap amount
-        .store_uint(creation_timestamp, 64)
-        .store_uint(deadline, 64)
+        .store_uint(creation_timestamp, 32)
+        .store_uint(withdrawal_deadline, 32)
+        .store_uint(public_withdrawal_deadline, 32)
+        .store_uint(cancellation_deadline, 32)
+        .store_uint(public_cancellation_deadline, 32)
         .store_uint(status, 2)            ;; 2-bit status: 0=init, 1=completed, 2=refunded
 ```
 
@@ -215,19 +218,24 @@ This dual-field design allows the contract to handle both swap directions (TONâ†
 
 The escrow contract supports multiple time lock phases to ensure fairness and flexibility for both swap participants. Each phase is represented by an absolute timestamp (UNIX time) in the contract storage. The main types of time locks are as follows:
 
+
 - **withdrawal_deadline**: The last moment at which the intended participant (maker or taker, depending on the swap direction) can withdraw funds by revealing the secret.
-- **public_withdrawal_deadline**: The moment after which anyone (not just the intended participant) can withdraw funds, typically as a fallback for inactivity or lost keys.
-- **cancellation_deadline**: The earliest time at which the original depositor can reclaim their funds if the counterparty does not fulfill the swap conditions.
-- **public_cancellation_deadline**: The moment after which anyone can cancel the swap and reclaim the funds, serving as a final safety valve against abandoned escrows.
+- **public_withdrawal_deadline**: The last moment at which anyone (not just the intended participant) can withdraw funds (fallback for inactivity).
+- **cancellation_deadline**: The last moment at which the original depositor can reclaim their funds if the counterparty does not fulfill the swap conditions.
+- **public_cancellation_deadline**: The last moment at which anyone can cancel the swap and reclaim the funds (final safety valve against abandoned escrows).
 
-**Time Lock Variable Summary Table:**
+> **Note:** 
+- In this document, all deadlines mean the last moment (endtime) when the corresponding operation is allowed. At the exact moment of the deadline, the operation is still permitted, but not after.
+- Public withdrawal and public refund require the secret to be revealed (publicly known). Only after the secret is made public can anyone perform a withdrawal or refund during the public withdrawal or public cancellation phase.
 
-| Function                      | Recommended Variable Name        | Description                                                        |
-|-------------------------------|----------------------------------|--------------------------------------------------------------------|
-| Standard withdrawal deadline   | `withdrawal_deadline`            | Last moment when standard withdraw is allowed                      |
-| Public withdrawal deadline     | `public_withdrawal_deadline`     | Time after which anyone can withdraw (fallback for inactivity)     |
-| Cancellation deadline         | `cancellation_deadline`          | Earliest time when standard cancellation (refund) is allowed       |
-| Public cancellation deadline  | `public_cancellation_deadline`   | Time after which anyone can cancel and reclaim funds (final safety)|
+**Time Locks Variable Summary Table:**
+
+| Function                      | Recommended Variable Name        | Description                                                        | Who Can Operate           | Secret Required? | Status Transition         |
+|-------------------------------|----------------------------------|--------------------------------------------------------------------|---------------------------|------------------|--------------------------|
+| Standard withdrawal deadline   | `withdrawal_deadline`            | Last moment when standard withdraw is allowed                      | Intended participant      | Yes              | completed (withdrawn)     |
+| Public withdrawal deadline     | `public_withdrawal_deadline`     | Last moment when public withdraw is allowed                        | Anyone                   | Yes (must know)  | completed (withdrawn)     |
+| Cancellation deadline         | `cancellation_deadline`          | Last moment when standard cancellation (refund) is allowed         | Depositor                | Yes              | refunded (canceled)       |
+| Public cancellation deadline  | `public_cancellation_deadline`   | Last moment when public cancellation (refund) is allowed           | Anyone                   | Yes (must know)  | refunded (canceled)       |
 
 Each variable is a UNIX timestamp (uint32 or uint64, uint32 is ok), and their meanings are consistent across all swap directions.
 
@@ -236,25 +244,6 @@ Each variable is a UNIX timestamp (uint32 or uint64, uint32 is ok), and their me
 - Instead, all state transitions are triggered only when an external message (transaction) is received by the contract.
 - When a message is received (e.g., withdraw, cancel, or public actions), the contract compares the current blockchain time with the relevant deadlines and updates the status or storage accordingly.
 - This means that even if a deadline has passed, the contract state will remain unchanged until someone sends a transaction to trigger the transition.
-
-**Storage Layout(Plan):**
-```plaintext
-storage::dict_swaps_info
-    64,
-    query_id,
-    begin_cell()
-        .store_uint(swap_id, 256)         ;; 256-bit unique swap identifier
-        .store_uint(eth_addr, 160)        ;; Ethereum address (160-bit)
-        .store_slice(ton_addr)            ;; TON address (MsgAddress)
-        .store_coins(amount)              ;; Swap amount
-        .store_uint(creation_timestamp, 32)
-        .store_uint(withdrawal_deadline, 32)
-        .store_uint(public_withdrawal_deadline, 32)
-        .store_uint(cancellation_deadline, 32)
-        .store_uint(public_cancellation_deadline, 32)
-        .store_uint(status, 2)            ;; 2-bit status: 0=init, 1=completed, 2=refunded
-```
-
 
 
 ## Test Scenario Walkthrough

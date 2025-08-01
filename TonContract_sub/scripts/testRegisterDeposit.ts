@@ -36,22 +36,44 @@ export async function run(provider: NetworkProvider) {
         throw new Error('Failed to get sender address');
     }
 
-    // Maker's Ethereum address input (160-bit)
-    const ethAddrInput = await ui.input("Ethereum address (with 0x): ");
-    // Remove '0x' prefix if present and convert to BigInt
-    const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
-    const ethAddr = BigInt('0x' + cleanEthAddr);
+    // Ethereum address selection
+    const choice = await ui.input("Ethereum address:\n1. Use custom address\n2. Use Vitalik Buterin (0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)\n\nEnter 1 or 2: ");
+    
+    let ethAddr;
+    if (choice === '1') {
+        // Custom address input
+        const ethAddrInput = await ui.input("Ethereum address (with 0x): ");
+        const cleanEthAddr = ethAddrInput.startsWith('0x') ? ethAddrInput.slice(2) : ethAddrInput;
+        ethAddr = BigInt('0x' + cleanEthAddr);
+    } else {
+        // Use Vitalik's address as sample
+        const sampleEthAddr = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+        ethAddr = BigInt(sampleEthAddr);
+    }
     console.log(`Ethereum address: 0x${ethAddr.toString(16)}`);
 
     // Amount input (nano)
-    const amountInput = await ui.input('Amount to deposit (in nano): ');
+    const amountInput = await ui.input('Amount of Jettons to deposit in nano (1USDT = 1000000): ');
     const amount = BigInt(amountInput);
     console.log(`Amount: ${amount} nano USDT`);
 
-    // Deadline input (default: 24 hours from now)
-    const defaultDeadline = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours from now
-    const deadline = BigInt(defaultDeadline);
-    console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
+    // Helper function to create deadline
+    const createDeadline = (hours: number) => {
+        const timestamp = Math.floor(Date.now() / 1000) + (hours * 60 * 60);
+        return BigInt(timestamp);
+    };
+
+    // Create deadlines
+    const withdrawalDeadline = createDeadline(1);
+    const publicWithdrawalDeadline = createDeadline(2);
+    const cancellationDeadline = createDeadline(3);
+    const publicCancellationDeadline = createDeadline(4);
+
+    // Log deadlines
+    console.log(`Withdrawal deadline: ${withdrawalDeadline} (${new Date(Number(withdrawalDeadline) * 1000).toISOString()})`);
+    console.log(`Public withdrawal deadline: ${publicWithdrawalDeadline} (${new Date(Number(publicWithdrawalDeadline) * 1000).toISOString()})`);
+    console.log(`Cancellation deadline: ${cancellationDeadline} (${new Date(Number(cancellationDeadline) * 1000).toISOString()})`);
+    console.log(`Public cancellation deadline: ${publicCancellationDeadline} (${new Date(Number(publicCancellationDeadline) * 1000).toISOString()})`);
 
     // Gas amount
     const gasAmount = toNano('0.05'); // 0.05 TON = 50,000,000 nanoTON
@@ -65,7 +87,10 @@ export async function run(provider: NetworkProvider) {
         .storeUint(ethAddr, 160)       // ethAddr (160-bit)
         .storeAddress(userAddr)             // tonAddr (MsgAddress)
         .storeCoins(amount)                 // amount (coins)
-        .storeUint(deadline, 64)            // deadline (UNIX timestamp, 64-bit)
+        .storeUint(withdrawalDeadline, 32)  // withdrawal deadline (32-bit)
+        .storeUint(publicWithdrawalDeadline, 32)  // public withdrawal deadline (32-bit)
+        .storeUint(cancellationDeadline, 32)  // cancellation deadline (32-bit)
+        .storeUint(publicCancellationDeadline, 32)  // public cancellation deadline (32-bit)
         .endCell();
     
     console.log('\nMessage details to send:');
@@ -75,7 +100,10 @@ export async function run(provider: NetworkProvider) {
     console.log(`Ethereum address: 0x${ethAddr.toString(16)}`);
     console.log(`TON address: ${userAddr.toString()}`);
     console.log(`Amount: ${amount} nanoUSDT (${Number(amount) / 1e6} USDT)`);
-    console.log(`Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`);
+    console.log(`Withdrawal deadline: ${withdrawalDeadline} (${new Date(Number(withdrawalDeadline) * 1000).toISOString()})`);
+    console.log(`Public withdrawal deadline: ${publicWithdrawalDeadline} (${new Date(Number(publicWithdrawalDeadline) * 1000).toISOString()})`);
+    console.log(`Cancellation deadline: ${cancellationDeadline} (${new Date(Number(cancellationDeadline) * 1000).toISOString()})`);
+    console.log(`Public cancellation deadline: ${publicCancellationDeadline} (${new Date(Number(publicCancellationDeadline) * 1000).toISOString()})`);
     console.log(`Gas amount: ${gasAmount} nanoTON (${Number(gasAmount) / 1e9} TON)`);
     
     // Confirmation
@@ -111,9 +139,12 @@ export async function run(provider: NetworkProvider) {
         console.log(`   - The third value is 0x${ethAddr.toString(16)} (Ethereum address)`);
         console.log(`   - The fourth value is ${userAddr.toString()} (TON address)`);
         console.log(`   - The fifth value is ${amount} (amount in nanoUSDT)`);
-        console.log('   - The sixth value is <creation_timestamp> (creation timestamp)');
-        console.log(`   - The seventh value is ${deadline} (deadline as UNIX timestamp)`);
-        console.log('   - The eighth value is 0 (status: 0=init, 1=completed, 2=refunded)');
+        console.log(`   - The sixth value is <creation_timestamp> (creation timestamp)`);
+        console.log(`   - The seventh value is ${withdrawalDeadline} (withdrawal deadline as UNIX timestamp)`);
+        console.log(`   - The eighth value is ${publicWithdrawalDeadline} (public withdrawal deadline as UNIX timestamp)`);
+        console.log(`   - The ninth value is ${cancellationDeadline} (cancellation deadline as UNIX timestamp)`);
+        console.log(`   - The tenth value is ${publicCancellationDeadline} (public cancellation deadline as UNIX timestamp)`);
+        console.log('   - The eleventh value is 0 (status: 0=init, 1=completed, 2=refunded)');
     } catch (error) {
         console.error('Error sending message:', error instanceof Error ? error.message : String(error));
     }
