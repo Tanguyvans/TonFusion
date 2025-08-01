@@ -350,7 +350,7 @@ slice get_wallet_address(slice admin_address) method_id {
 }
 
 ;; Debug getter to retrieve SwapsInfoID details
-(int, int, int, slice, int, int, int, int, int, int, int) get_swaps_info_debug(int query_id) method_id {
+(int, int, int, slice, int, int, int, int, int, int, int) get_swaps_info(int query_id) method_id {
     load_storage();
     (int swap_id, int eth_addr, slice ton_addr, int amount, int creation_timestamp, int withdrawal_deadline, int public_withdrawal_deadline, int cancellation_deadline, int public_cancellation_deadline, int status) = load_swaps_info(query_id);
     int found = ~ equal_slices(ton_addr, addr_none());
