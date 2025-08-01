@@ -1,5 +1,5 @@
-import { Address, toNano } from '@ton/core';
-import { Vault, VaultConfig } from '../../wrappers/Vault';
+import { Address, toNano, Cell, Dictionary } from '@ton/core';
+import { Vault, VaultConfig, SwapsInfoValue } from '../../wrappers/Vault';
 import { NetworkProvider } from '@ton/blueprint';
 import { compile } from '@ton/blueprint';
 
@@ -9,23 +9,24 @@ export async function run(provider: NetworkProvider) {
     console.log('\nVault Update Tool');
     console.log('----------------');
 
-    // 1. Source Vault Address
+    // 1. Get the target Vault address
     const vaultAddr = Address.parse(
         await ui.input('Enter Vault address to update: ')
     );
     const vault = provider.open(Vault.createFromAddress(vaultAddr));
     const jettonData = await vault.getJettonData();
+    const vaultData = await vault.getVaultData();
 
-    // Keep current content
+    // Use current content
     const newContent = jettonData.content;
 
-    // Keep current total_supply
+    // Use current total supply
     const newTotalSupply = jettonData.totalSupply;
 
-    // Keep default gas amount
+    // Use default gas amount
     const gasAmount = toNano('0.05');
     
-    // 実行確認
+    // Confirm before executing
     const confirmUpdate = await ui.choose(
         '\nProceed with Vault update?',
         ['Yes, update the Vault', 'No, cancel the operation'],
@@ -36,13 +37,17 @@ export async function run(provider: NetworkProvider) {
         return;
     }
 
-    // 新しい設定を構築
+    // Build new config
     const newConfig: VaultConfig = {
         adminAddress: jettonData.adminAddress,
         content: newContent,
         walletCode: jettonData.walletCode,
         totalSupply: newTotalSupply,
+        jettonMaster: vaultData.jettonMaster,
+        jettonWallet: vaultData.jettonWallet,
+        dictSwapsInfo: vaultData.dictSwapsInfo ? Dictionary.load(Dictionary.Keys.BigUint(64), SwapsInfoValue, vaultData.dictSwapsInfo) : undefined,
     };
+
     
     console.log('\nNew Configuration:');
     console.log(JSON.stringify({
@@ -50,7 +55,7 @@ export async function run(provider: NetworkProvider) {
         totalSupply: (newConfig.totalSupply || 0n).toString(),
     }, null, 2));
 
-    // コードとデータを更新
+    // Update Vault code and data
     console.log('\nUpdating Vault code and data...');
     
     try {
