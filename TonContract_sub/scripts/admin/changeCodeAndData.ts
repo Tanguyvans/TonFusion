@@ -25,6 +25,10 @@ export async function run(provider: NetworkProvider) {
 
     // Use default gas amount
     const gasAmount = toNano('0.05');
+
+    // Important notes for admin
+    console.log('\n[NOTE] dictSwapsInfo will be reset (all swaps will be cleared).');
+    console.log('[NOTE] The stopped flag will be set to true. You must run initVault.ts again to restart the Vault.');
     
     // Confirm before executing
     const confirmUpdate = await ui.choose(
@@ -45,15 +49,8 @@ export async function run(provider: NetworkProvider) {
         totalSupply: newTotalSupply,
         jettonMaster: vaultData.jettonMaster,
         jettonWallet: vaultData.jettonWallet,
-        dictSwapsInfo: vaultData.dictSwapsInfo ? Dictionary.load(Dictionary.Keys.BigUint(64), SwapsInfoValue, vaultData.dictSwapsInfo) : undefined,
+        dictSwapsInfo: Dictionary.empty(Dictionary.Keys.BigUint(64), SwapsInfoValue),
     };
-
-    
-    console.log('\nNew Configuration:');
-    console.log(JSON.stringify({
-        adminAddress: newConfig.adminAddress.toString(),
-        totalSupply: (newConfig.totalSupply || 0n).toString(),
-    }, null, 2));
 
     // Update Vault code and data
     console.log('\nUpdating Vault code and data...');
