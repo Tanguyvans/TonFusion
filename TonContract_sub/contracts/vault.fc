@@ -192,11 +192,11 @@
         throw_unless(er::insufficient_gas(), msg_value >= required_gas);
 
         ;; Load parameters
-        slice to_address = sender_address;  ;; Refund always goes to sender
-        int amount = in_msg_body~load_coins();
-        cell secret_cell = in_msg_body~load_ref();
-        slice secret_slice = secret_cell.begin_parse();
-        int swap_id = slice_hash(secret_slice);
+        slice to_address = in_msg_body~load_msg_addr();  ;; To address
+        int amount = in_msg_body~load_coins();           ;; Load parameters
+        cell secret_cell = in_msg_body~load_ref();       ;; Received secret as cell
+        slice secret_slice = secret_cell.begin_parse();  ;; Parse cell to slice
+        int swap_id = slice_hash(secret_slice);          ;; Compute sha256(secret) as int
 
         ;; Load SwapsInfoID
         (int stored_swap_id, int eth_addr, slice ton_addr, int stored_amount, int creation_timestamp, int withdrawal_deadline, int public_withdrawal_deadline, int cancellation_deadline, int public_cancellation_deadline, int status) = load_swaps_info(query_id);

@@ -227,12 +227,12 @@ In this document, all deadlines mean the last moment (endtime) when the correspo
 
 **Time Lock Variable Summary Table:**
 
-| Function                      | Recommended Variable Name        | Description                                                        |
-|-------------------------------|----------------------------------|--------------------------------------------------------------------|
-| Standard withdrawal deadline   | `withdrawal_deadline`            | Last moment when standard withdraw is allowed                      |
-| Public withdrawal deadline     | `public_withdrawal_deadline`     | Last moment when public withdraw is allowed                        |
-| Cancellation deadline         | `cancellation_deadline`          | Last moment when standard cancellation (refund) is allowed         |
-| Public cancellation deadline  | `public_cancellation_deadline`   | Last moment when public cancellation (refund) is allowed           |
+| Function                      | Recommended Variable Name        | Description                                                        | Who Can Operate           | Secret Required? | Status Transition         |
+|-------------------------------|----------------------------------|--------------------------------------------------------------------|---------------------------|------------------|--------------------------|
+| Standard withdrawal deadline   | `withdrawal_deadline`            | Last moment when standard withdraw is allowed                      | Intended participant      | Yes              | completed (withdrawn)     |
+| Public withdrawal deadline     | `public_withdrawal_deadline`     | Last moment when public withdraw is allowed                        | Anyone                   | Yes (must know)  | completed (withdrawn)     |
+| Cancellation deadline         | `cancellation_deadline`          | Last moment when standard cancellation (refund) is allowed         | Depositor                | Yes              | refunded (canceled)       |
+| Public cancellation deadline  | `public_cancellation_deadline`   | Last moment when public cancellation (refund) is allowed           | Anyone                   | Yes (must know)  | refunded (canceled)       |
 
 Each variable is a UNIX timestamp (uint32 or uint64, uint32 is ok), and their meanings are consistent across all swap directions.
 
