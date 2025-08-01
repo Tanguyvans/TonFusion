@@ -10,6 +10,7 @@ import {
     SendMode,
     toNano,
 } from '@ton/core';
+import { Op } from '../utils/Constants';
 
 export interface SwapsInfo {
     swapId: bigint;          // 256-bit Swap ID
@@ -297,7 +298,6 @@ export class Vault implements Contract {
         const swapsInfo = await this.getSwapsInfo(provider);
         return swapsInfo.get(queryId) || null;
     }
-
     /**
      * Register a new deposit
      * @param provider Contract provider
@@ -339,6 +339,58 @@ export class Vault implements Contract {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: messageBody,
+        });
+    }
+    /**
+     * Send admin message
+     * @param provider Contract provider
+     * @param via Sender address
+     * @param message Message cell
+     * @param mode Send mode
+     */
+    async sendAdminMessage(
+        provider: ContractProvider,
+        via: Sender,
+        msg: Cell,
+        mode: number,
+        value: bigint = toNano('0.05'),
+    ) {
+        await provider.internal(via, {
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Vault.sendAdminMessageMessage(msg, mode),
+            value,
+        });
+    }
+
+    static sendAdminMessageMessage(msg: Cell, mode: number) {
+        return beginCell()
+            .storeUint(Op.send_admin_message, 32)
+            .storeUint(0, 64)
+            .storeRef(msg)
+            .storeUint(mode, 8)
+            .endCell();
+    }
+
+    static changeCodeAndDataMessage(code: Cell, config: VaultConfig, isMainnet: boolean = false) {
+        return beginCell()
+            .storeUint(Op.change_code_and_data, 32)
+            .storeUint(0, 64)
+            .storeRef(code)
+            .storeRef(vaultConfigToCell(config, isMainnet))
+            .endCell();
+    }
+    async sendChangeCodeAndData(
+        provider: ContractProvider,
+        via: Sender,
+        code: Cell,
+        config: VaultConfig,
+        value: bigint = toNano('0.05'),
+        isMainnet: boolean = false,
+    ) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: Vault.changeCodeAndDataMessage(code, config, isMainnet),
         });
     }
 }

@@ -64,4 +64,25 @@ When switching TON wallets:
 ### Sample Vault Address
 [kQBBkjy_kUeB8um1BVChq1Uru4MXM8V-CixDZ1XPyLjaKR5v](https://testnet.tonviewer.com/kQBBkjy_kUeB8um1BVChq1Uru4MXM8V-CixDZ1XPyLjaKR5v)
 
+### Vault Operations Using AdminScripts
+
+The `@admin` directory contains several administrative scripts for managing Vault operations:
+
+1. **changeCodeAndData.ts**
+   - Updates Vault contract code and data
+   - Resets dictSwapsInfo
+   - Sets stopped state true (requires initVault again)
+
+2. **changeVaultAdmin.ts**
+   - Changes Vault's admin address
+
+3. **destroyVault.ts**
+   - Destroys a Vault contract
+   - Transfers remaining TON to the sender
+
+4. **transferVaultJetton.ts**
+   - Transfers Jettons from Vault to another address
+   - Requires source Vault and Jetton wallet addresses
+
+**Note**: All operations can only be performed by the Vault admin's wallet.
 
