@@ -37,7 +37,7 @@ export async function run(provider: NetworkProvider) {
     }
 
     // Ethereum address selection
-    const choice = await ui.input("Select Ethereum address:\n1. Enter custom address\n2. Use Vitalik Buterin (0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)\n\nEnter 1 or 2: ");
+    const choice = await ui.input("Ethereum address:\n1. Use custom address\n2. Use Vitalik Buterin (0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)\n\nEnter 1 or 2: ");
     
     let ethAddr;
     if (choice === '1') {
@@ -53,7 +53,7 @@ export async function run(provider: NetworkProvider) {
     console.log(`Ethereum address: 0x${ethAddr.toString(16)}`);
 
     // Amount input (nano)
-    const amountInput = await ui.input('Amount to deposit (in nano): ');
+    const amountInput = await ui.input('Amount of Jettons to deposit in nano (1USDT = 1000000): ');
     const amount = BigInt(amountInput);
     console.log(`Amount: ${amount} nano USDT`);
 

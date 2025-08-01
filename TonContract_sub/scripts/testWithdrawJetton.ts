@@ -28,7 +28,7 @@ export async function run(provider: NetworkProvider) {
     // Build secret cell for contract (as ref)
     const secretCell = beginCell().storeBuffer(Buffer.from(secret)).endCell();
     // Amount input
-    const amount = BigInt(await ui.input('Amount of Jettons to withdraw (in basic units): '));
+    const amount = BigInt(await ui.input('Amount of Jettons to withdraw in nano (1USDT = 1000000): '));
 
     console.log('\nTransaction Details:');
     console.log('------------------');

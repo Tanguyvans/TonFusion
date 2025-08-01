@@ -41,11 +41,11 @@ export async function run(provider: NetworkProvider) {
     console.log(`Swap ID (hex): 0x${hexString}`);
     
     // Get amount from user input
-    const amountStr = await ui.input('Enter amount in nano (e.g., 1000000): ');
+    const amountStr = await ui.input('Amount of Jettons to deposit in nano (1USDT = 1000000): ');
     const amount = BigInt(amountStr);
     
     // Ethereum address selection
-    const choice = await ui.input("Select Ethereum address:\n1. Enter custom address\n2. Use Vitalik Buterin (0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)\n\nEnter 1 or 2: ");
+    const choice = await ui.input("Ethereum address:\n1. Use custom address\n2. Use Vitalik Buterin (0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)\n\nEnter 1 or 2: ");
     
     let ethAddr, ethAddrBuffer;
     if (choice === '1') {
