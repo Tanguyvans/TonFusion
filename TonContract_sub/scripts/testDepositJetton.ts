@@ -62,10 +62,10 @@ export async function run(provider: NetworkProvider) {
     }
     
     // Fixed deadlines
-    const withdrawalDeadline = BigInt(Math.floor(Date.now() / 1000) + (1 * 60 * 60)); // 1 hour from now
-    const publicWithdrawalDeadline = BigInt(Math.floor(Date.now() / 1000) + (2 * 60 * 60)); // 2 hours from now
-    const cancellationDeadline = BigInt(Math.floor(Date.now() / 1000) + (3 * 60 * 60)); // 3 hours from now
-    const publicCancellationDeadline = BigInt(Math.floor(Date.now() / 1000) + (4 * 60 * 60)); // 4 hours from now
+    const withdrawalDeadline = BigInt(Math.floor(Date.now() / 1000) + (3 * 60)); // 3 mins from now
+    const publicWithdrawalDeadline = BigInt(Math.floor(Date.now() / 1000) + (6 * 60)); // 6 mins from now
+    const cancellationDeadline = BigInt(Math.floor(Date.now() / 1000) + (9 * 60)); // 9 mins from now
+    const publicCancellationDeadline = BigInt(Math.floor(Date.now() / 1000) + (12 * 60)); // 12 mins  from now
     
     // Fixed Ton Amount
     const forwardTonAmount = toNano('0.025'); // 0.025 TON for forward message (must be bigger than required_gas in op::transfer_notification(0.02 TON))
