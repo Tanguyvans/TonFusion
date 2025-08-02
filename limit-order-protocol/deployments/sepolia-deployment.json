@@ -1,0 +1,10 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "contracts": {
+    "LimitOrderProtocol": "0xb47e3709C8989AC76B9240A29dEd6Dc5C106A0e5",
+    "WETH": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14"
+  },
+  "timestamp": "2025-08-01T21:21:12.844Z",
+  "txHash": "0x0eb0408149024b762b5354334008d948ce44495a67dee33debdaba0b32a51c19"
+}

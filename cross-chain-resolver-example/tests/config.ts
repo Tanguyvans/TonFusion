@@ -11,7 +11,9 @@ const ConfigSchema = z.object({
     SRC_CHAIN_RPC: z.string().url(),
     DST_CHAIN_RPC: z.string().url(),
     SRC_CHAIN_CREATE_FORK: bool.default('true'),
-    DST_CHAIN_CREATE_FORK: bool.default('true')
+    DST_CHAIN_CREATE_FORK: bool.default('true'),
+    PRIVATE_KEY_1: z.string().optional(),
+    PRIVATE_KEY_2: z.string().optional()
 })
 
 const fromEnv = ConfigSchema.parse(process.env)
@@ -19,30 +21,34 @@ const fromEnv = ConfigSchema.parse(process.env)
 export const config = {
     chain: {
         source: {
-            chainId: Sdk.NetworkEnum.ETHEREUM,
+            chainId: 11155111, // Sepolia testnet (now supported in local SDK)
             url: fromEnv.SRC_CHAIN_RPC,
             createFork: fromEnv.SRC_CHAIN_CREATE_FORK,
-            limitOrderProtocol: '0x111111125421ca6dc452d289314280a0f8842a65',
-            wrappedNative: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-            ownerPrivateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+            limitOrderProtocol: '0xb47e3709C8989AC76B9240A29dEd6Dc5C106A0e5', // Your deployed contract
+            wrappedNative: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14', // Sepolia WETH
+            ownerPrivateKey: fromEnv.PRIVATE_KEY_1 || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
             tokens: {
                 USDC: {
-                    address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-                    donor: '0xd54F23BE482D9A58676590fCa79c8E43087f92fB'
+                    address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', // Your Sepolia USDC
+                    donor: '0x504b635B7E22F8DF7d037cf31639811AE583E9f0' // Your address as donor
+                },
+                WETH: {
+                    address: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14', // Sepolia WETH
+                    donor: '0x504b635B7E22F8DF7d037cf31639811AE583E9f0' // Your address as donor
                 }
             }
         },
         destination: {
-            chainId: Sdk.NetworkEnum.BINANCE,
+            chainId: 97, // BSC testnet (now supported in local SDK)
             url: fromEnv.DST_CHAIN_RPC,
             createFork: fromEnv.DST_CHAIN_CREATE_FORK,
-            limitOrderProtocol: '0x111111125421ca6dc452d289314280a0f8842a65',
-            wrappedNative: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c',
-            ownerPrivateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+            limitOrderProtocol: '0x111111125421ca6dc452d289314280a0f8842a65', // 1inch on BSC testnet (if exists)
+            wrappedNative: '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd', // BSC testnet WBNB
+            ownerPrivateKey: fromEnv.PRIVATE_KEY_2 || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
             tokens: {
                 USDC: {
-                    address: '0x8965349fb649a33a30cbfda057d8ec2c48abe2a2',
-                    donor: '0x4188663a85C92EEa35b5AD3AA5cA7CeB237C6fe9'
+                    address: '0x64544969ed7EBf5f083679233325356EbE738930', // BSC testnet USDC
+                    donor: '0x1234567890123456789012345678901234567890' // Different address for BSC
                 }
             }
         }

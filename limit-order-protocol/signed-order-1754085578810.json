@@ -1,0 +1,17 @@
+{
+  "order": {
+    "salt": "1754085578692",
+    "maker": "0x504b635B7E22F8DF7d037cf31639811AE583E9f0",
+    "receiver": "0x0000000000000000000000000000000000000000",
+    "makerAsset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "takerAsset": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+    "makingAmount": "1000000",
+    "takingAmount": "400000000000000",
+    "makerTraits": "0"
+  },
+  "signature": "0xd0e4f49041a32bdfa0175b368e835af773051eec00d09d9326e32d1689be27004a983da9ed242f5f3606e6427a73a86e34a3d7ae1256a679d34d16c8131ecc6e1c",
+  "orderHash": "0x8329f22d3fa45ca4ee9827fffbe99a1193522d341fd73a1c5c986a633895e05b",
+  "chainId": 11155111,
+  "contractAddress": "0xb47e3709C8989AC76B9240A29dEd6Dc5C106A0e5",
+  "createdAt": "2025-08-01T21:59:38.810Z"
+}
