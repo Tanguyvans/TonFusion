@@ -4,7 +4,10 @@
     "scripts": {
         "start": "blueprint run",
         "build": "blueprint build",
-        "test": "jest --verbose"
+        "test": "jest --verbose",
+        "event-listener": "npx blueprint run startEventListener",
+        "webhook-server": "npx ts-node scripts/runWebhookServer.ts",
+        "start-monitoring": "concurrently \"npm run webhook-server\" \"sleep 5 && npm run event-listener\""
     },
     "devDependencies": {
         "@ton/blueprint": "^0.25.0",
@@ -13,8 +16,11 @@
         "@ton/sandbox": "^0.22.0",
         "@ton/test-utils": "^0.4.2",
         "@ton/ton": "^15.2.1",
+        "@types/express": "^4.17.21",
         "@types/jest": "^29.5.14",
         "@types/node": "^22.8.7",
+        "@types/node-fetch": "^2.6.11",
+        "concurrently": "^8.2.2",
         "jest": "^29.7.0",
         "prettier": "^3.3.3",
         "ts-jest": "^29.2.5",
@@ -24,6 +30,8 @@
     "dependencies": {
         "@ston-fi/api": "^0.21.0",
         "@ston-fi/sdk": "^2.2.3",
+        "express": "^4.18.2",
+        "node-fetch": "^2.7.0",
         "ton-core": "^0.53.0"
     }
 }

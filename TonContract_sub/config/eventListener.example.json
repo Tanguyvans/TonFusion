@@ -1,0 +1,25 @@
+{
+    "vaultAddress": "kQBBkjy_kUeB8um1BVChq1Uru4MXM8V-CixDZ1XPyLjaKR5v",
+    "network": "testnet",
+    "pollingInterval": 5000,
+    "webhookUrl": "http://localhost:3000/webhook",
+    "fevm": {
+        "rpcUrl": "https://api.hyperspace.node.glif.io/rpc/v1",
+        "contractAddress": "0x1234567890123456789012345678901234567890",
+        "privateKey": "YOUR_PRIVATE_KEY_HERE"
+    },
+    "notifications": {
+        "discord": {
+            "webhookUrl": "https://discord.com/api/webhooks/..."
+        },
+        "email": {
+            "smtpHost": "smtp.gmail.com",
+            "smtpPort": 587,
+            "username": "your-email@gmail.com",
+            "password": "your-app-password",
+            "recipients": [
+                "admin@example.com"
+            ]
+        }
+    }
+}
