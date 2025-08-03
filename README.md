@@ -19,7 +19,7 @@ TonFusion implements a trustless cross-chain swap protocol that ensures atomic t
 
 - **Hash Time-Locked System**: Cryptographic security with time-based failsafes
 - **Atomic Swaps**: Guaranteed all-or-nothing transactions
-- **Multi-chain Support**: TON ↔ Ethereum/BSC
+- **Multi-chain Support**: TON ↔ EVM
 - **Trustless Operation**: No intermediary custody of funds
 
 ## Hash Time-Locked System
