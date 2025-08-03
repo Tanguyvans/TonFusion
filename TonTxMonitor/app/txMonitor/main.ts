@@ -177,7 +177,7 @@ export async function getTxMonitorResult(
       queryId,
       sinceTimestamp: Math.floor(sinceTimestamp.getTime() / 1000),
 
-      // onLog: console.error,
+      onLog: console.log,
     });
     // 最終的な結果サマリーを出力
     console.error(

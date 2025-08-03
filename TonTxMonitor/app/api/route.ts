@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       params.userAddress,
       params.queryId || '0',
       params.requiredExcessOpcodeCount || 1,
-      new Date(params.sinceTimestamp || Date.now()),
+      new Date((params.sinceTimestamp || Date.now()) * 1000),
       params.totalAmount || '0',
       params.txHashbyTonConnect,
 
