@@ -1,4 +1,4 @@
-// メッセージの型定義
+// Message type definition
 export interface Message {
   destination?: {
     address: string;
@@ -11,7 +11,16 @@ export interface Message {
   [key: string]: any;
 }
 
-// API request type
+// Transaction monitoring parameter type (for internal use)
+export interface TxMonitorParams {
+  userAddress: string;
+  queryId: string;
+  requiredExcessOpcodeCount: number;
+  txHash: string;
+  totalAmount: string;
+}
+
+// API request type (for external use)
 export type TxMonitorRequest = {
   userAddress: string;
   txHashbyTonConnect: string;
@@ -21,7 +30,7 @@ export type TxMonitorRequest = {
   totalAmount?: string;
 };
 
-// Transaction type
+// Transaction type 
 export interface Transaction {
   hash?: string;
   utime?: number;
@@ -35,20 +44,20 @@ export interface Transaction {
   [key: string]: any;
 }
 
-// トランザクション検索結果の型
+// Transaction monitor result type
 export type TxMonitorResult = 
   'TX_RESULT_FULLY_SUCCESS' | 
   'TX_RESULT_PARTIAL_SUCCESS' | 
   'TX_RESULT_FAILED' | 
   'TX_RESULT_ERROR';
 
-// 監視設定の型
+// Monitor configuration type
 export interface MonitorConfig {
   monitorCount: number;
   monitorIntervalMs: number;
 }
 
-// 監視結果の型
+// Monitor result type
 export interface MonitorResult {
   destinationSuccess: boolean | null;
   querySuccess: boolean | null;
@@ -57,7 +66,7 @@ export interface MonitorResult {
 
 
 /**
- * verifyOpCodeの戻り値型。検証結果の要約を保持
+ * Return type of verifyOpCode. Holds summary of verification result.
  */
 export type OpCodeVerificationResult = {
   found: number;
