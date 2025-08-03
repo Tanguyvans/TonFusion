@@ -66,3 +66,12 @@ for this transaction: [View on Tonviewer](https://testnet.tonviewer.com/transact
 ## Configuration
 
 - Edit `constants/config.ts` to adjust monitoring intervals, limits, and op_code.
+- Switch between Mainnet and Testnet by setting `NEXT_PUBLIC_TON_API_BASE_URL` in [.env]
+  ```
+  # Mainnet
+  NEXT_PUBLIC_TON_API_BASE_URL=https://tonapi.io
+  # Testnet
+  # NEXT_PUBLIC_TON_API_BASE_URL=https://testnet.tonapi.io
+  ```
+  - Mainnet: `https://tonapi.io`
+  - Testnet: `https://testnet.tonapi.io`
