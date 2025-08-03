@@ -11,6 +11,16 @@ A hybrid blockchain project that enables atomic cross-chain swaps between TON bl
 - [Development Setup](#development-setup)
 - [Testing](#testing)
 
+## Demo
+
+🚀 **To run the atomic swap demos, check out the `demo` branch!**
+
+The `demo` branch contains:
+- Complete ETH ↔ TON atomic swap implementations  
+- Step-by-step demo instructions in [RUN_DEMO.md](https://github.com/Tanguyvans/TonFusion/blob/demo/RUN_DEMO.md)
+- Contract addresses and setup guides
+- Both ETH→TON and TON→ETH demo flows
+
 ## Overview
 
 TonFusion implements a trustless cross-chain swap protocol that ensures atomic transactions between TON and Ethereum networks. The system guarantees that either both parties receive their funds (successful swap) or both parties get their original funds back (cancelled swap), with no scenario where only one party benefits.
