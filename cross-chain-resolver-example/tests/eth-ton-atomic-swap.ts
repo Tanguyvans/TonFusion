@@ -116,9 +116,10 @@ function waitForEnter(message: string): Promise<void> {
     })
 }
 
-async function ethOnlyDemo(): Promise<void> {
-    console.log('🚀 ETH-Only Deposit & Withdraw Demo')
-    console.log('💡 Deposit on ETH, withdraw on ETH (BSC address for order structure only)')
+async function ethTonAtomicSwap(): Promise<void> {
+    console.log('🚀 ETH-TON Cross-Chain Demo')
+    console.log('💡 This demo coordinates with TON blockchain for atomic swaps')
+    console.log('📱 You will need to run TON commands in a separate terminal')
 
     const srcChainId = config.chain.source.chainId
     const dstChainId = config.chain.destination.chainId
@@ -126,7 +127,7 @@ async function ethOnlyDemo(): Promise<void> {
     let src: Chain | undefined
 
     try {
-        console.log('📡 Initializing ETH network...')
+        console.log('\n📡 Initializing ETH network...')
         src = await initChain(config.chain.source)
 
         const srcChainUser = new Wallet(userPk, src.provider)
@@ -156,14 +157,26 @@ async function ethOnlyDemo(): Promise<void> {
         console.log(`  Resolver: ${initialResolverBalance / BigInt(10 ** 6)} USDC`)
 
         // === DEPOSIT PHASE ===
-        console.log('\n🔵 === DEPOSIT PHASE (ETH) ===')
-        console.log('📝 Ready to create order and deposit 100 USDC on ETH...')
-        console.log('💡 Note: BSC address included for order structure, but no BSC deposit')
+        console.log('\n🔵 === PHASE 1: ETH DEPOSIT ===')
+        console.log('📝 Creating ETH order and generating secret...')
         
-        await waitForEnter('🔄 Press Enter to execute the DEPOSIT on ETH')
+        // Generate Query ID (channel identifier) - same as old CLI
+        const queryId = Math.floor(Math.random() * 1000000)
         
-        const secret = uint8ArrayToHex(randomBytes(32))
-        console.log('🔑 SECRET (HASHLOCK PRIVATE KEY):', secret)
+        // Generate secret - 32-byte random secret like the old CLI
+        const secretBytes = randomBytes(32)
+        const secret = uint8ArrayToHex(secretBytes)
+        
+        // Calculate swap ID (hash of the secret)
+        const swapId = Sdk.HashLock.forSingleFill(secret).toString()
+        
+        console.log('\n🔐 === GENERATED VALUES ===')
+        console.log('📍 QUERY ID:', queryId, '(channel identifier)')
+        console.log('🔑 SECRET (32-byte hex):', secret)
+        console.log('🆔 ETH SWAP ID (ETH hash method):', swapId)
+        console.log('\n💡 TON will calculate its own Swap ID using TON hash method')
+        
+        await waitForEnter('🔄 Press Enter to create ETH deposit order')
 
         // Create cross-chain order (but we'll only use ETH side)
         const order = Sdk.CrossChainOrder.new(
@@ -217,8 +230,8 @@ async function ethOnlyDemo(): Promise<void> {
         const signature = await srcChainUser.signOrder(srcChainId, order)
         const orderHash = order.getOrderHash(srcChainId)
         
-        // Use dummy BSC address for resolver (not actually used)
-        const resolverContract = new Resolver(src.resolver, '0x0000000000000000000000000000000000000001')
+        // Use proper resolver addresses for both src and dst
+        const resolverContract = new Resolver(src.resolver, src.resolver)
 
         console.log(`🔄 [${srcChainId}] Filling order ${orderHash}`)
 
@@ -249,20 +262,47 @@ async function ethOnlyDemo(): Promise<void> {
         const afterDepositUserBalance = await srcChainUser.tokenBalance(config.chain.source.tokens.USDC.address)
         const afterDepositResolverBalance = await srcResolverContract.tokenBalance(config.chain.source.tokens.USDC.address)
         
-        console.log('📊 After Deposit:')
-        console.log(`  User: ${afterDepositUserBalance / BigInt(10 ** 6)} USDC`)
-        console.log(`  Resolver: ${afterDepositResolverBalance / BigInt(10 ** 6)} USDC`)
+        console.log('\n📊 ETH Deposit Complete:')
+        console.log(`  User balance: ${afterDepositUserBalance / BigInt(10 ** 6)} USDC (was ${initialUserBalance / BigInt(10 ** 6)}`)
+        console.log(`  Deposited: ${(initialUserBalance - afterDepositUserBalance) / BigInt(10 ** 6)} USDC`)
         console.log(`  Escrow address: ${srcEscrowAddress}`)
-        console.log(`  User deposited: ${(initialUserBalance - afterDepositUserBalance) / BigInt(10 ** 6)} USDC`)
-
-        // === WITHDRAW PHASE ===
-        console.log('\n🟢 === WITHDRAW PHASE (ETH) ===')
-        console.log('💰 Ready to withdraw the deposited funds using the secret...')
-        console.log(`🔑 Secret to be used: ${secret}`)
-        console.log(`📍 Escrow address: ${srcEscrowAddress}`)
-        console.log('💡 Note: Only withdrawing on ETH, no BSC interaction needed')
+        console.log(`  Order hash: ${orderHash}`)
         
-        await waitForEnter('🔄 Press Enter to execute the WITHDRAW on ETH')
+        // TON Instructions
+        console.log('\n🔵 === PHASE 2: TON DEPOSIT ===')
+        console.log('📱 Now switch to your TON terminal and run:')
+        console.log('   npx blueprint run')
+        console.log('   Select: testTransferNotification_realJettonTransfer')
+        console.log('\n📋 Use these values for TON deposit:')
+        console.log(`   • Query ID: ${queryId}`)
+        console.log(`   • Secret: ${secret}`)
+        console.log('   • Amount: 1000 nano')
+        console.log('   • Destination (Vault): EQD--f_k54qs29OKvLUZywXZYLQkDb6Avvv2Lxr5P4G-giua')
+        console.log('   • Jetton Master: EQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPnc4')
+        console.log('\n💡 TON will calculate its own Swap ID using its hash method')
+        console.log(`💡 ETH Swap ID: ${swapId}`)
+        console.log('⏳ Complete the TON deposit, then come back here...')
+
+        await waitForEnter('✅ Press Enter AFTER you have completed the TON deposit')
+        
+        // === WITHDRAW PHASE ===
+        console.log('\n🟢 === PHASE 3: WITHDRAWALS ===')
+        console.log('Now we can withdraw on both chains using the secret!')
+        
+        console.log('\n📍 ETH Withdrawal:')
+        console.log(`  • Escrow: ${srcEscrowAddress}`)
+        console.log(`  • Secret: ${secret}`)
+        console.log(`  • Will withdraw: ${fillAmount / BigInt(10 ** 6)} USDC`)
+        
+        console.log('\n📍 TON Withdrawal Instructions:')
+        console.log('   Run: npx blueprint run')
+        console.log('   Select: testWithdrawJetton')
+        console.log(`   • Query ID: ${queryId}`)
+        console.log(`   • Secret: ${secret}`)
+        console.log('   • Amount: 1000')
+        console.log(`   • Vault: EQD--f_k54qs29OKvLUZywXZYLQkDb6Avvv2Lxr5P4G-giua`)
+        
+        await waitForEnter('🔄 Press Enter to execute ETH withdrawal')
         
         console.log('⏱️  Simulating time passage for finality lock...')
         await src.provider.send('evm_increaseTime', [11])
@@ -276,19 +316,20 @@ async function ethOnlyDemo(): Promise<void> {
         const finalUserBalance = await srcChainUser.tokenBalance(config.chain.source.tokens.USDC.address)
         const finalResolverBalance = await srcResolverContract.tokenBalance(config.chain.source.tokens.USDC.address)
         
-        console.log('\n📊 Final Results:')
+        console.log('\n📊 Final ETH Results:')
         console.log(`  Initial - User: ${initialUserBalance / BigInt(10 ** 6)} USDC, Resolver: ${initialResolverBalance / BigInt(10 ** 6)} USDC`)
         console.log(`  Final - User: ${finalUserBalance / BigInt(10 ** 6)} USDC, Resolver: ${finalResolverBalance / BigInt(10 ** 6)} USDC`)
         console.log(`  Net changes:`)
         console.log(`    User: ${(finalUserBalance - initialUserBalance) / BigInt(10 ** 6)} USDC`)
         console.log(`    Resolver: ${(finalResolverBalance - initialResolverBalance) / BigInt(10 ** 6)} USDC`)
         
-        console.log('\n💡 Summary:')
-        console.log('• ✅ Deposited 100 USDC on ETH using hashlock')
-        console.log('• ✅ Withdrew 100 USDC on ETH using secret')
-        console.log('• 📝 BSC address was only used for order structure')
-        console.log('• 🔑 Secret acted as private key to unlock funds')
-        console.log('🎉 ETH-only deposit & withdraw completed successfully!')
+        console.log('\n💡 Cross-Chain Atomic Swap Summary:')
+        console.log('• ✅ Phase 1: Deposited USDC on ETH with hashlock')
+        console.log('• ✅ Phase 2: Deposited Jettons on TON with same secret')
+        console.log('• ✅ Phase 3: Withdrew on ETH using secret')
+        console.log('• 📱 Phase 3: Can withdraw on TON using same secret')
+        console.log('\n🔐 The same secret unlocks funds on both chains!')
+        console.log('🎉 ETH-TON atomic swap demonstration complete!')
 
     } catch (error) {
         console.error('❌ Error:', error)
@@ -299,4 +340,4 @@ async function ethOnlyDemo(): Promise<void> {
     }
 }
 
-export { ethOnlyDemo }
+export { ethTonAtomicSwap }

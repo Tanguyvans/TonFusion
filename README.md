@@ -1,71 +1,229 @@
-# TonFusion: TON-ETH Cross-Chain Bridge
+# TonFusion - ETH ↔ TON Atomic Swaps
 
-A hybrid blockchain project that enables atomic cross-chain swaps between TON blockchain and EVM chains (Ethereum/BSC) using 1inch's cross-chain swap infrastructure and Hash Time-Locked Contracts (HTLCs).
+A hybrid blockchain project that enables atomic cross-chain swaps between TON blockchain and EVM chains (Ethereum/BSC) using 1inch's cross-chain swap infrastructure.
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Hash Lock System](#hash-lock-system)
-- [Architecture](#architecture)
-- [TON-ETH Implementation Guide](#ton-eth-implementation-guide)
-- [Development Setup](#development-setup)
-- [Testing](#testing)
-- [Deployment](#deployment)
-
-## Overview
-
-TonFusion implements a trustless cross-chain swap protocol that ensures atomic transactions between TON and Ethereum networks. The system guarantees that either both parties receive their funds (successful swap) or both parties get their original funds back (cancelled swap), with no scenario where only one party benefits.
-
-### Key Features
-
-- **Atomic Swaps**: Guaranteed all-or-nothing transactions
-- **Hash Time-Locked Contracts**: Cryptographic security with time-based failsafes
-- **Multi-chain Support**: TON ↔ Ethereum/BSC
-- **Trustless Operation**: No intermediary custody of funds
-
-## Hash Lock System
-
-### Core Mechanism
-
-The hash lock system uses cryptographic hashes to ensure atomic cross-chain swaps:
-
-1. **Secret Generation**: User generates a random 32-byte secret
-2. **Hash Lock Creation**: Secret is hashed using SHA256 to create the lock
-3. **Dual Escrow Deployment**: Both chains deploy escrows with identical hash locks
-4. **Atomic Reveal**: Revealing the secret on one chain enables claims on both chains
-
-### Security Guarantees
-
-- **Atomicity**: Either both parties succeed or both get refunds
-- **Time-based Protection**: Multiple timeout periods prevent fund lockup
-- **Cryptographic Security**: SHA256 hash ensures only secret holder can unlock
-
-### Flow Example
+## 🏗️ Project Structure
 
 ```
-User (TON) ←→ Resolver ←→ User (ETH)
-    ↓              ↓           ↓
-1. Generate secret
-2. Create hash lock (SHA256(secret))
-3. Deploy escrows on both chains with same hash lock
-4. User reveals secret on ETH to claim funds
-5. Resolver uses revealed secret to claim on TON
+TonFusion/
+├── cross-chain-resolver-example/    # EVM contracts & ETH-side logic
+├── TonContract_sub/                 # TON blockchain smart contracts
+├── limit-order-protocol/            # 1inch Limit Order Protocol
+└── old-crosschain/                  # Legacy implementation
 ```
 
-## Architecture
+## 📋 Contract Addresses
 
-### Components
+### TON Testnet
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **Vault** | `EQD--f_k54qs29OKvLUZywXZYLQkDb6Avvv2Lxr5P4G-giua` | Main vault for atomic swaps |
+| **Jetton Master** | `EQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPnc4` | Test USDT jetton |
 
-1. **Cross-chain Resolver** (`cross-chain-resolver-example/`): EVM implementation using 1inch's protocol
-2. **TON Integration** (`ton-start/`): TON blockchain smart contracts (Blueprint framework)
+### Ethereum (Forked/Local)
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **1inch Limit Order Protocol** | `0x111111125421ca6dc452d289314280a0f8842a65` | Order matching |
+| **USDC Token** | `0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48` | Source token |
+| **USDC Donor** | `0xd54F23BE482D9A58676590fCa79c8E43087f92fB` | Test token provider |
 
-### Current EVM Implementation
+### BSC (Forked/Local)
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **1inch Limit Order Protocol** | `0x111111125421ca6dc452d289314280a0f8842a65` | Order matching |
+| **USDC Token** | `0x8965349fb649a33a30cbfda057d8ec2c48abe2a2` | Destination token |
+| **USDC Donor** | `0x4188663a85C92EEa35b5AD3AA5cA7CeB237C6fe9` | Test token provider |
 
-The existing resolver demonstrates the pattern for Ethereum ↔ BSC swaps:
+## 🔄 Atomic Swap Flows
 
-- `Resolver.sol`: Main resolver contract validating and executing swaps
-- `TestEscrowFactory.sol`: Factory for creating escrow contracts
-- Hash-based atomic settlement with multiple time locks
+### ETH → TON Atomic Swap
+
+```mermaid
+sequenceDiagram
+    participant User as User (Maker+Resolver)
+    participant ETH
+    participant TON
+
+    Note over User, TON: Phase 1: Setup
+    User->>User: Generate secret & Query ID
+
+    Note over User, TON: Phase 2: Deposit Phase
+    User->>ETH: Deposit 100 USDC with hashlock
+    ETH->>ETH: Lock funds in escrow
+    User->>TON: Manually transfer jettons with same secret
+    TON->>TON: Store swap info in vault
+
+    Note over User, TON: Phase 3: Withdrawal Phase
+    User->>ETH: Withdraw with secret (as resolver)
+    ETH->>User: Release USDC
+    User->>TON: Manually withdraw with same secret
+    TON->>User: Release jettons
+
+    Note over User, TON: ✅ Same secret unlocks both chains
+```
+
+### TON → ETH Atomic Swap
+
+```mermaid
+sequenceDiagram
+    participant User as User (Maker+Resolver)
+    participant TON
+    participant ETH
+
+    Note over User, ETH: Phase 1: Setup
+    User->>User: Generate secret & Query ID
+
+    Note over User, ETH: Phase 2: Deposit Phase
+    User->>TON: Deposit jettons with hashlock (SOURCE)
+    TON->>TON: Store swap info in vault
+    User->>ETH: Setup destination escrow (DESTINATION)
+    ETH->>ETH: Resolver deposits USDC for user
+
+    Note over User, ETH: Phase 3: Withdrawal Phase
+    User->>ETH: Receive USDC (as maker)
+    ETH->>User: Release USDC to user
+    User->>TON: Manually withdraw with same secret
+    TON->>User: Release jettons
+
+    Note over User, ETH: ✅ Same secret unlocks both chains
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 22+
+- pnpm
+- Tonkeeper wallet (for TON testnet)
+- Git
+
+### Setup
+
+1. **Clone and install dependencies:**
+```bash
+git clone <repository>
+cd TonFusion
+
+# ETH side setup
+cd cross-chain-resolver-example
+pnpm install
+forge install
+
+# TON side setup
+cd ../TonContract_sub
+npm install
+```
+
+2. **Configure environment:**
+```bash
+# In cross-chain-resolver-example/
+cp .env.example .env
+# Add your RPC URLs:
+SRC_CHAIN_RPC=https://eth.merkle.io
+DST_CHAIN_RPC=https://bsc.merkle.io
+```
+
+### Running Atomic Swaps
+
+#### ETH → TON Demo
+
+**Terminal 1 (ETH side):**
+```bash
+cd cross-chain-resolver-example
+SRC_CHAIN_RPC=<ETH_RPC> DST_CHAIN_RPC=<BSC_RPC> pnpm test run-eth-only-demo.spec.ts
+```
+
+**Terminal 2 (TON side):**
+```bash
+cd TonContract_sub
+npx blueprint run
+# Select: testTransferNotification_realJettonTransfer (for deposit)
+# Select: testWithdrawJetton (for withdrawal)
+```
+
+#### TON → ETH Demo
+
+**Terminal 1 (ETH side):**
+```bash
+cd cross-chain-resolver-example
+SRC_CHAIN_RPC=<ETH_RPC> DST_CHAIN_RPC=<BSC_RPC> pnpm test run-ton-eth-demo.spec.ts
+```
+
+**Terminal 2 (TON side):**
+```bash
+cd TonContract_sub
+npx blueprint run
+# Select: testTransferNotification_realJettonTransfer (for deposit)
+# Select: testWithdrawJetton (for withdrawal)
+```
+
+## 🔧 How It Works
+
+### Core Components
+
+1. **Secret Generation**: 32-byte random secret shared between chains
+2. **Hash Methods**: 
+   - ETH: `HashLock.forSingleFill(secret)`
+   - TON: `sha256(secret)`
+3. **Query ID**: Channel identifier linking both transactions
+4. **Atomic Execution**: Same secret unlocks funds on both chains
+
+### ETH Side Operations
+
+- **Deposit**: Creates cross-chain order with hashlock
+- **Escrow**: Locks USDC with timelock and secret hash
+- **Withdrawal**: Resolver unlocks using secret
+
+### TON Side Operations
+
+- **Register Deposit**: `op::register_deposit()` stores swap info
+- **Transfer Notification**: Jetton transfer with forward payload
+- **Withdraw**: `op::withdraw_jetton()` validates secret and releases funds
+
+### Key Scripts
+
+#### TON Scripts
+```bash
+# Deposit jettons
+npx blueprint run -> testTransferNotification_realJettonTransfer
+
+# Withdraw jettons  
+npx blueprint run -> testWithdrawJetton
+
+# Check vault data
+npx blueprint run -> getVaultData
+```
+
+#### ETH Scripts
+```bash
+# Run ETH→TON demo
+pnpm test run-eth-only-demo.spec.ts
+
+# Run TON→ETH demo  
+pnpm test run-ton-eth-demo.spec.ts
+
+# Lint code
+pnpm lint
+
+# Build contracts
+forge build
+```
+
+## 🛡️ Security Features
+
+- **Hashlock Mechanism**: Funds locked until secret is revealed
+- **Timelock Protection**: Automatic refund after expiration
+- **Safety Deposits**: Incentivize honest behavior
+- **Atomic Execution**: Either both chains succeed or both fail
+
+## 🏁 Demo vs Production
+
+| Feature | Demo Implementation | Full 1inch Protocol |
+|---------|-------------------|-------------------|
+| **Coordination** | Manual (2 terminals) | Automated via 1inch relayer |
+| **Roles** | User plays Maker+Resolver | Separate Maker/Resolver entities |
+| **Discovery** | Hardcoded addresses | Dutch auction mechanism |
+| **Execution** | Manual CLI commands | Automated smart contracts |
 
 ## TON-ETH Implementation Guide
 

@@ -1,0 +1,4 @@
+pnpm test run-eth-only-demo.spec.ts
+pnpm test run-ton-eth-demo.spec.ts
+
+0xec9d2c90a26488dc301fc872cafd34479bbfc0584dd1310d155c4923907303e0
