@@ -1,11 +1,4 @@
-// Transaction monitoring parameters
-interface TxMonitorParams {
-  userAddress: string;
-  queryId: string;
-  requiredExcessOpcodeCount: number;
-  txHash: string;
-  totalAmount: string;
-}
+import type { TxMonitorParams } from '@/txMonitor/types';
 
 export async function callTxMonitor(params: TxMonitorParams) {
   try {
