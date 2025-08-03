@@ -237,7 +237,7 @@ The escrow contract supports multiple time lock phases to ensure fairness and fl
 | Cancellation deadline         | `cancellation_deadline`          | Last moment when standard cancellation (refund) is allowed         | Depositor                | Yes              | refunded (canceled)       |
 | Public cancellation deadline  | `public_cancellation_deadline`   | Last moment when public cancellation (refund) is allowed           | Anyone                   | Yes (must know)  | refunded (canceled)       |
 
-Each variable is a UNIX timestamp (uint32 or uint64, uint32 is ok), and their meanings are consistent across all swap directions.
+Each variable is a UNIX timestamp (uint32), and their meanings are consistent across all swap directions.
 
 **Note on State Transitions in TON:**
 - In TON, contract state changes (such as updating deadlines or status) do **not** occur automatically as time passes.

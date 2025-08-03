@@ -1,16 +1,15 @@
 # TonFusion: TON-ETH Cross-Chain Bridge
 
-A hybrid blockchain project that enables atomic cross-chain swaps between TON blockchain and EVM chains (Ethereum/BSC) using 1inch's cross-chain swap infrastructure and Hash Time-Locked Contracts (HTLCs).
+A hybrid blockchain project that enables atomic cross-chain swaps between TON blockchain and EVM chains using 1inch's cross-chain swap infrastructure and Hash Time-Locked Contracts (HTLCs).
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Hash Lock System](#hash-lock-system)
+- [Hash Time-Locked System](#hash-time-locked-system)
 - [Architecture](#architecture)
 - [TON-ETH Implementation Guide](#ton-eth-implementation-guide)
 - [Development Setup](#development-setup)
 - [Testing](#testing)
-- [Deployment](#deployment)
 
 ## Overview
 
@@ -18,18 +17,18 @@ TonFusion implements a trustless cross-chain swap protocol that ensures atomic t
 
 ### Key Features
 
+- **Hash Time-Locked System**: Cryptographic security with time-based failsafes
 - **Atomic Swaps**: Guaranteed all-or-nothing transactions
-- **Hash Time-Locked Contracts**: Cryptographic security with time-based failsafes
-- **Multi-chain Support**: TON ↔ Ethereum/BSC
+- **Multi-chain Support**: TON ↔ EVM
 - **Trustless Operation**: No intermediary custody of funds
 
-## Hash Lock System
+## Hash Time-Locked System
 
 ### Core Mechanism
 
 The hash lock system uses cryptographic hashes to ensure atomic cross-chain swaps:
 
-1. **Secret Generation**: User generates a random 32-byte secret
+1. **Secret input**: User inputs a secret string
 2. **Hash Lock Creation**: Secret is hashed using SHA256 to create the lock
 3. **Dual Escrow Deployment**: Both chains deploy escrows with identical hash locks
 4. **Atomic Reveal**: Revealing the secret on one chain enables claims on both chains
@@ -45,9 +44,9 @@ The hash lock system uses cryptographic hashes to ensure atomic cross-chain swap
 ```
 User (TON) ←→ Resolver ←→ User (ETH)
     ↓              ↓           ↓
-1. Generate secret
+1. User inputs secret
 2. Create hash lock (SHA256(secret))
-3. Deploy escrows on both chains with same hash lock
+3. Deploy escrows / register swaps info on both chains with same hash lock
 4. User reveals secret on ETH to claim funds
 5. Resolver uses revealed secret to claim on TON
 ```
@@ -57,7 +56,7 @@ User (TON) ←→ Resolver ←→ User (ETH)
 ### Components
 
 1. **Cross-chain Resolver** (`cross-chain-resolver-example/`): EVM implementation using 1inch's protocol
-2. **TON Integration** (`ton-start/`): TON blockchain smart contracts (Blueprint framework)
+2. **TON Escrow Contract** (`TonContract_sub/`): TON blockchain smart contracts (Blueprint framework)
 
 ### Current EVM Implementation
 
@@ -69,112 +68,251 @@ The existing resolver demonstrates the pattern for Ethereum ↔ BSC swaps:
 
 ## TON-ETH Implementation Guide
 
-### Step 1: TON Escrow Contract Design
+### TON Escrow Contract Design
 
 Create a FunC smart contract that implements the HTLC pattern:
 
+**Storage Structure:**
 ```func
-;; TON Escrow Contract State
-global int status;           ;; 0=active, 1=withdrawn, 2=cancelled
-global slice maker;          ;; recipient address
-global slice taker;          ;; depositor/resolver address
-global slice jetton_master;  ;; token contract (or null for TON)
-global int amount;           ;; locked amount
-global int hash_lock;        ;; SHA256 hash of secret
-global int deployed_at;      ;; deployment timestamp
-global int withdrawal_time;  ;; when withdrawal becomes available
-global int public_withdrawal_time;   ;; when anyone can trigger withdrawal
-global int cancellation_time;        ;; when cancellation becomes available
-global int public_cancellation_time; ;; when anyone can cancel
+storage::stopped,
+storage::jetton_master,
+storage::jetton_wallet,
+storage::dict_swaps_info
+```
+Each swap entry in `storage::dict_swaps_info` is structured as:
+```func
+storage::dict_swaps_info
+    64,
+    query_id,
+    begin_cell()
+        .store_uint(swap_id, 256)         ;; 256-bit unique swap identifier
+        .store_uint(eth_addr, 160)        ;; Ethereum address (160-bit)
+        .store_slice(ton_addr)            ;; TON address (MsgAddress)
+        .store_coins(amount)              ;; Swap amount
+        .store_uint(creation_timestamp, 32)
+        .store_uint(withdrawal_deadline, 32)
+        .store_uint(public_withdrawal_deadline, 32)
+        .store_uint(cancellation_deadline, 32)
+        .store_uint(public_cancellation_deadline, 32)
+        .store_uint(status, 2)            ;; 2-bit status: 0=init, 1=completed, 2=refunded
 ```
 
-### Step 2: Contract Functions
+### Contract Functions
 
-#### Deposit Function
+#### Deposit Function (op::transfer_notification())
 ```func
-() deposit(slice maker_address, int hash_lock, int withdrawal_time, 
-          int public_withdrawal_time, int cancellation_time, 
-          int public_cancellation_time) impure {
-    throw_unless(100, status == 0);  ;; must be uninitialized
-    
-    maker = maker_address;
-    hash_lock = hash_lock;
-    deployed_at = now();
-    withdrawal_time = deployed_at + withdrawal_time;
-    public_withdrawal_time = deployed_at + public_withdrawal_time;
-    cancellation_time = deployed_at + cancellation_time;
-    public_cancellation_time = deployed_at + public_cancellation_time;
-    status = 1;  ;; active
-}
-```
+ if (op == op::transfer_notification()) {
+        ;; Check if the contract is stopped
+        throw_unless(er::vault_is_stopped(), storage::stopped != -1);
+        
+        ;; Calculate gas 
+        int required_gas = gas_basic_processing_consumption() + ;;（0.005 TON）
+                gas_storage_load_consumption() +      ;;（0.005 TON）
+                gas_dict_update_consumption() +       ;;（0.005 TON）
+                gas_storage_save_consumption();       ;;（0.005 TON）: Total: 0.02 TON
 
-#### Withdraw Function
-```func
-() withdraw(slice secret) impure {
-    throw_unless(101, status == 1);  ;; must be active
-    throw_unless(102, now() >= withdrawal_time);  ;; respect time lock
-    
-    int secret_hash = sha256(secret);
-    throw_unless(103, secret_hash == hash_lock);  ;; verify secret
-    
-    ;; Transfer funds to maker
-    if (jetton_master.null?()) {
-        send_raw_message(begin_cell()
-            .store_uint(0x18, 6)
-            .store_slice(maker)
-            .store_coins(amount)
-            .store_uint(0, 107)
-        .end_cell(), 3);
-    } else {
-        ;; Handle Jetton transfer
-        transfer_jetton(maker, amount);
+        ;; Check if the required gas is available
+        throw_unless(er::insufficient_gas(), msg_value >= required_gas);
+        
+        ;; Get parameters
+        int amount = in_msg_body~load_coins();           ;; Amount to deposit
+        slice sender_address = in_msg_body~load_msg_addr(); ;; address which sent jetton
+        cell forward_payload = in_msg_body~load_maybe_ref(); ;; 
+        cell custom_payload = in_msg_body~load_maybe_ref(); ;; 
+        
+        ;; Parse forward_payload if it exists
+        if (~ forward_payload.null?()) {
+            slice payload_slice = forward_payload.begin_parse();
+            int op_code = payload_slice~load_uint(32); ;; Check op_code
+            
+            if (op_code == op::register_deposit()) { ;; Only process if it's register_deposit
+                int swap_id = payload_slice~load_uint(256);         ;; Swap ID (SHA256 hash as int)
+                int eth_addr = payload_slice~load_uint(160);  ;; Ethereum address (160 bits)
+                slice ton_addr = payload_slice~load_msg_addr(); ;; TON address (MsgAddress)
+                int withdrawal_deadline = payload_slice~load_uint(32);         ;; Withdrawal deadline (32 bits)
+                int public_withdrawal_deadline = payload_slice~load_uint(32);  ;; Public withdrawal deadline (32 bits)
+                int cancellation_deadline = payload_slice~load_uint(32);       ;; Cancellation deadline (32 bits)
+                int public_cancellation_deadline = payload_slice~load_uint(32); ;; Public cancellation deadline (32 bits)
+                
+                ;; Only update storage if forward_payload is valid
+                update_swaps_info(query_id, swap_id, eth_addr, ton_addr, amount, now(), withdrawal_deadline, public_withdrawal_deadline, cancellation_deadline, public_cancellation_deadline, 0);
+                save_storage();
+            }
+        }
+        return ();
     }
-    
-    status = 2;  ;; withdrawn
-}
 ```
 
-#### Cancel Function
+#### Withdraw Function(op::withdraw_jetton())
 ```func
-() cancel() impure {
-    throw_unless(104, status == 1);  ;; must be active
-    throw_unless(105, now() >= cancellation_time);  ;; respect time lock
-    
-    ;; Return funds to taker
-    if (jetton_master.null?()) {
-        send_raw_message(begin_cell()
-            .store_uint(0x18, 6)
-            .store_slice(taker)
-            .store_coins(amount)
-            .store_uint(0, 107)
-        .end_cell(), 3);
-    } else {
-        ;; Handle Jetton transfer
-        transfer_jetton(taker, amount);
+if (op == op::withdraw_jetton()) {
+        ;; Check if the contract is stopped
+        throw_unless(er::vault_is_stopped(), storage::stopped != -1);
+
+        ;; Calculate required gas
+        int required_gas = gas_storage_load_consumption() + ;; 0.005 TON
+                        gas_dict_update_consumption() + ;; 0.005 TON
+                        gas_storage_save_consumption() + ;; 0.005 TON
+                        gas_jetton_transfer_consumption(); ;; 0.05 TON Total: 0.065 TON
+        
+        ;; Check if the required gas is available
+        throw_unless(er::insufficient_gas(), msg_value >= required_gas);
+        
+        ;; Load parameters
+        slice to_address = in_msg_body~load_msg_addr();  ;; To address
+        int amount = in_msg_body~load_coins();           ;; Load parameters
+        cell secret_cell = in_msg_body~load_ref();       ;; Received secret as cell
+        slice secret_slice = secret_cell.begin_parse();  ;; Parse cell to slice
+        int swap_id = slice_hash(secret_slice);          ;; Compute sha256(secret) as int
+
+        ;; Load SwapsInfoID 
+        (int stored_swap_id, int eth_addr, slice ton_addr, int stored_amount, int creation_timestamp, int withdrawal_deadline, int public_withdrawal_deadline, int cancellation_deadline, int public_cancellation_deadline, int status) = load_swaps_info(query_id);
+        
+        ;; Check basic conditions
+        throw_unless(er::invalid_query_id(), eth_addr != 0);
+        throw_unless(er::invalid_swap_time(), now() >= creation_timestamp);
+        throw_unless(er::invalid_swap_id(), stored_swap_id == swap_id);
+        throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
+        throw_unless(er::invalid_swap_status(), status == 0);
+
+        ;; Check time and permited withdrawer address
+        if (now() <= withdrawal_deadline) {
+            ;; intended participant only withdraw is allowed
+            throw_unless(er::invalid_swap_withdrawer(), equal_slices(to_address, ton_addr));
+        } else {
+            if (now() <= public_withdrawal_deadline) {
+                ;; public withdraw period (anyone can withdraw)
+            } else {
+                ;; otherwise withdraw is not allowed by anyone
+                throw(er::invalid_swap_time());
+            }
+        }
+        
+        ;; Create jetton transfer message body
+        cell transfer_body = begin_cell()
+            .store_uint(op::jetton_transfer(), 32)  ;; Jetton transfer operation code
+            .store_uint(query_id, 64)               ;; query_id
+            .store_coins(amount)                   ;; Amount
+            .store_slice(to_address)               ;; To address
+            .store_slice(sender_address)           ;; Response address
+            .store_uint(0, 1)                      ;; custom_payload is empty
+            .store_coins(0)                        ;; forward_ton_amount: 0 nanoTON
+            .store_uint(0, 1)                      ;; forward_payload is empty
+            .end_cell();
+        
+        ;; Jetton wallet message
+        cell msg = begin_cell()
+            .store_uint(0x18, 6)                  ;; Flag
+            .store_slice(storage::jetton_wallet)   ;; Send to Vault's Jetton wallet
+            .store_coins(gas_jetton_transfer_consumption())                       ;; Send TON amount (Jetton wallet pays for gas)
+            .store_uint(1, 107)                   ;; Default value
+            .store_ref(transfer_body)             ;; Transfer message body
+            .end_cell();
+        
+        ;; Send message
+        send_raw_message(msg, 1);  ;; Mode 1
+        
+        ;; Calculate new stored amount and status
+        int new_stored_amount = stored_amount - amount;
+        int new_status = status;
+        if (new_stored_amount == 0) {
+            new_status = 1;
+        }
+        ;; Update storage
+        update_swaps_info(query_id, swap_id, eth_addr, ton_addr, new_stored_amount, creation_timestamp, withdrawal_deadline, public_withdrawal_deadline, cancellation_deadline, public_cancellation_deadline, new_status);
+        save_storage();
+        
+        return ();
     }
-    
-    status = 3;  ;; cancelled
-}
+
 ```
 
-### Step 3: Time Lock Configuration
+#### Cancel Function(op::refund_jetton())
+```func
+ if (op == op::refund_jetton()) {
+        ;; Check if the contract is stopped
+        throw_unless(er::vault_is_stopped(), storage::stopped != -1);
 
-Configure time locks to match the EVM implementation:
+        ;; Calculate required gas
+        int required_gas = gas_storage_load_consumption() +
+                        gas_dict_update_consumption() +
+                        gas_storage_save_consumption() +
+                        gas_jetton_transfer_consumption();
+        throw_unless(er::insufficient_gas(), msg_value >= required_gas);
 
-```typescript
-const timeLocks = {
-    tonWithdrawal: 10,      // 10s finality lock
-    tonPublicWithdrawal: 120, // 2m private withdrawal  
-    tonCancellation: 121,    // 1s public withdrawal
-    tonPublicCancellation: 122, // 1s private cancellation
-    
-    ethWithdrawal: 10,       // 10s finality lock
-    ethPublicWithdrawal: 100, // 100s private withdrawal
-    ethCancellation: 101     // 1s public withdrawal
-}
+        ;; Load parameters
+        slice to_address = in_msg_body~load_msg_addr();  ;; To address
+        int amount = in_msg_body~load_coins();           ;; Load parameters
+        cell secret_cell = in_msg_body~load_ref();       ;; Received secret as cell
+        slice secret_slice = secret_cell.begin_parse();  ;; Parse cell to slice
+        int swap_id = slice_hash(secret_slice);          ;; Compute sha256(secret) as int
+
+        ;; Load SwapsInfoID
+        (int stored_swap_id, int eth_addr, slice ton_addr, int stored_amount, int creation_timestamp, int withdrawal_deadline, int public_withdrawal_deadline, int cancellation_deadline, int public_cancellation_deadline, int status) = load_swaps_info(query_id);
+        
+        ;; Basic checks
+        throw_unless(er::invalid_query_id(), eth_addr != 0);
+        throw_unless(er::invalid_swap_time(), now() >= public_withdrawal_deadline);
+        throw_unless(er::invalid_swap_id(), stored_swap_id == swap_id);
+        throw_unless(er::invalid_swap_amount(), amount <= stored_amount);
+        throw_unless(er::invalid_swap_status(), status == 0);
+
+        ;; Time and permission checks
+        if (now() <= cancellation_deadline) {
+            ;; Only original depositor can refund
+            throw_unless(er::invalid_swap_withdrawer(), equal_slices(sender_address, ton_addr));
+        } else {
+            if (now() <= public_cancellation_deadline) {
+                ;; Anyone can refund
+            } else {
+                throw(er::invalid_swap_time());
+            }
+        }
+        
+        ;; Create jetton transfer message body
+        cell transfer_body = begin_cell()
+            .store_uint(op::jetton_transfer(), 32)
+            .store_uint(query_id, 64)
+            .store_coins(amount)
+            .store_slice(to_address)
+            .store_slice(sender_address)
+            .store_uint(0, 1)
+            .store_coins(0)
+            .store_uint(0, 1)
+            .end_cell();
+        cell msg = begin_cell()
+            .store_uint(0x18, 6)
+            .store_slice(storage::jetton_wallet)
+            .store_coins(gas_jetton_transfer_consumption())
+            .store_uint(1, 107)
+            .store_ref(transfer_body)
+            .end_cell();
+        send_raw_message(msg, 1);
+        int new_stored_amount = stored_amount - amount;
+        int new_status = status;
+        if (new_stored_amount == 0) {
+            new_status = 2;  ;; refunded
+        }
+        update_swaps_info(query_id, swap_id, eth_addr, ton_addr, new_stored_amount, creation_timestamp, withdrawal_deadline, public_withdrawal_deadline, cancellation_deadline, public_cancellation_deadline, new_status);
+        save_storage();
+        return ();
+    }
 ```
 
-### Step 4: Integration with Existing Resolver
+### Time Locks Design 
+**Time Locks Variable Summary Table:**
+
+| Function                      | Recommended Variable Name        | Description                                                        | Who Can Operate           | Secret Required? | Status Transition         |
+|-------------------------------|----------------------------------|--------------------------------------------------------------------|---------------------------|------------------|--------------------------|
+| Standard withdrawal deadline   | `withdrawal_deadline`            | Last moment when standard withdraw is allowed                      | Intended participant      | Yes              | completed (withdrawn)     |
+| Public withdrawal deadline     | `public_withdrawal_deadline`     | Last moment when public withdraw is allowed                        | Anyone                   | Yes (must know)  | completed (withdrawn)     |
+| Cancellation deadline         | `cancellation_deadline`          | Last moment when standard cancellation (refund) is allowed         | Depositor                | Yes              | refunded (canceled)       |
+| Public cancellation deadline  | `public_cancellation_deadline`   | Last moment when public cancellation (refund) is allowed           | Anyone                   | Yes (must know)  | refunded (canceled)       |
+
+Each variable is a UNIX timestamp (uint32), and their meanings are consistent across all swap directions.
+
+
+### Integration with Existing Resolver
 
 Modify the existing `Resolver.sol` to support TON interactions:
 
@@ -199,21 +337,13 @@ function withdrawFromTon(
 }
 ```
 
-### Step 5: Cross-Chain Communication
+### Cross-Chain Communication
 
 Implement communication layer between TON and Ethereum:
-
-#### Option A: Oracle-based Bridge
-- Deploy oracle contracts on both chains
-- Oracle validates transactions and relays state
-- Higher trust assumptions but simpler implementation
-
-#### Option B: Light Client Verification
 - Implement TON light client on Ethereum
 - Verify TON transactions cryptographically
-- More complex but fully trustless
 
-### Step 6: Complete Flow Implementation
+### Complete Flow Implementation
 
 #### TON → ETH Swap Flow
 
@@ -251,30 +381,6 @@ Implement communication layer between TON and Ethereum:
    await tonEscrow.withdraw(secret);
    ```
 
-### Step 7: Testing Strategy
-
-Create comprehensive tests covering:
-
-```typescript
-describe('TON-ETH Cross-Chain Swaps', () => {
-    it('should complete successful TON → ETH swap', async () => {
-        // Test happy path
-    });
-    
-    it('should handle timeout cancellation', async () => {
-        // Test cancellation scenarios
-    });
-    
-    it('should prevent double spending', async () => {
-        // Test security edge cases
-    });
-    
-    it('should handle partial fills', async () => {
-        // Test partial execution scenarios
-    });
-});
-```
-
 ## Development Setup
 
 ### Prerequisites
@@ -282,6 +388,8 @@ describe('TON-ETH Cross-Chain Swaps', () => {
 - Node.js 22+
 - pnpm
 - TON Development Environment
+    - Blueprint
+    - TonClient
 - Foundry (for EVM contracts)
 
 ### Cross-chain Resolver Setup
@@ -297,19 +405,23 @@ SRC_CHAIN_RPC=<ETH_FORK_URL> DST_CHAIN_RPC=<BSC_FORK_URL> pnpm test
 
 ### TON Contracts Setup
 
+Package Installation
 ```bash
-cd ton-start
 npm install
-
-# Build contracts
-npm run build
-
-# Run tests
-npm test
-
-# Deploy contracts
-npm start
 ```
+
+Build
+```bash
+npx blueprint build
+```
+
+Deploy & Initialize
+```bash
+npx blueprint run
+```
+1. deployVault
+2. initVault
+   - Vault contract address: Address of the vault deployed in step 1
 
 ## Testing
 
@@ -327,52 +439,6 @@ npm start
 - End-to-end cross-chain swap scenarios
 - Timeout and cancellation edge cases
 - Security vulnerability testing
-
-## Deployment
-
-### Testnet Deployment
-
-1. **Deploy EVM Contracts**
-   ```bash
-   # Deploy to Ethereum Sepolia
-   forge script --chain sepolia --broadcast --verify
-   
-   # Deploy to BSC Testnet  
-   forge script --chain bsc-testnet --broadcast --verify
-   ```
-
-2. **Deploy TON Contracts**
-   ```bash
-   # Deploy to TON Testnet
-   npx blueprint run --testnet
-   ```
-
-3. **Configure Cross-Chain Parameters**
-   - Set matching time locks across chains
-   - Configure oracle/bridge addresses
-   - Test with small amounts first
-
-### Mainnet Considerations
-
-- **Security Audits**: Complete professional security audit
-- **Gradual Rollout**: Start with limited amounts and supported tokens
-- **Monitoring**: Implement comprehensive logging and alerting
-- **Emergency Procedures**: Define pause mechanisms and recovery processes
-
-## Security Considerations
-
-- **Time Lock Validation**: Ensure proper time lock sequencing
-- **Secret Generation**: Use cryptographically secure randomness
-- **Oracle Security**: If using oracles, implement multiple validators
-- **Upgrade Mechanisms**: Plan for contract upgrades while maintaining security
-- **Emergency Stops**: Implement circuit breakers for unusual conditions
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Implement changes with comprehensive tests
-4. Submit a pull request with detailed description
 
 ## License
 
