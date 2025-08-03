@@ -10,7 +10,6 @@ const program = new Command();
 program
   .option('--env <env>', 'Environment (local or prod)', 'local')
   .requiredOption('--address <address>', 'Wallet address')
-  .requiredOption('--txHash <txHash>', 'Transaction hash')
   .option('--queryId <queryId>', 'Query ID', '0')
   .option('--amount <amount>', 'Amount', '1')
   .option('--sinceTimestamp <sinceTimestamp>', 'UNIX timestamp for monitoring start (default: now)', '')
@@ -28,7 +27,7 @@ async function monitorTransaction() {
   const endpoint = API_ENDPOINTS[options.env];
   const requestData = {
     userAddress: options.address,
-    txHashbyTonConnect: options.txHash,
+    txHashbyTonConnect: "txHashPlaceholder", // Future TODO: Add txHashbyTonConnect from TonConnect
     queryId: options.queryId,
     sinceTimestamp: options.sinceTimestamp ? Number(options.sinceTimestamp) : Math.floor(Date.now() / 1000),
     totalAmount: options.amount
