@@ -1,4 +1,6 @@
 import { NetworkProvider } from '@ton/blueprint';
+import { monitorTransaction } from '../../TonTxMonitor/scripts/testTxMonitor';
+import { MONITOR_CONFIG } from '../../TonTxMonitor/constants/config';
 import { Address, beginCell, toNano } from '@ton/core';
 import { Vault } from '../wrappers/Vault';
 import { Op } from '../utils/Constants';
@@ -65,6 +67,36 @@ export async function run(provider: NetworkProvider) {
         
         console.log('\n✅ refund_jetton transaction sent successfully!');
         console.log('Check the transaction in the explorer.');
+
+        // --- Calling TonTxMonitor ---
+        console.log('\n[TxMonitor] Tracking your transaction on-chain.');
+        console.log(`[TxMonitor] Updating status every ${MONITOR_CONFIG.MONITORING_INTERVAL_MS / 1000} seconds, up to ${MONITOR_CONFIG.MONITORING_COUNT * MONITOR_CONFIG.MONITORING_INTERVAL_MS / 1000} seconds.`);
+        console.log('[TxMonitor] Typically completes in about 30 seconds. Please wait...');
+        // --- Spinner Animation ---
+        const spinnerFrames = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+        let spinnerIndex = 0;
+        process.stdout.write(' ');
+        const spinner = setInterval(() => {
+            process.stdout.write('\r' + spinnerFrames[spinnerIndex] + ' ');
+            spinnerIndex = (spinnerIndex + 1) % spinnerFrames.length;
+        }, 120);
+        // --- End Spinner Animation ---
+        try {
+            const monitorOptions = {
+                env: (provider.network() === 'custom' ? 'prod' : 'local') as 'prod' | 'local',
+                address: senderAddr.toString(),
+                queryId: queryId.toString(),
+                amount: amount.toString(),
+                sinceTimestamp: Math.floor(Date.now() / 1000).toString(),
+                txHash: "txHashPlaceholder"
+            };
+            await monitorTransaction(monitorOptions);
+            clearInterval(spinner);
+        } catch (monitorError) {
+            clearInterval(spinner);
+            console.error('Error in monitorTransaction:', monitorError);
+        }
+        // --- End TonTxMonitor Calling---
         
     } catch (error) {
         console.error('\n❌ Error sending transaction:');

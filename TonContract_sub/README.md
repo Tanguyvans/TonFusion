@@ -34,6 +34,15 @@ npx blueprint run
    - Vault contract address: Address of the vault deployed in step 1
 
 ### Test Vault Operations Using Scripts
+
+> **Note:** To use the monitoring features in these scripts, you must start the TonTxMonitor service separately. In another terminal, go to `/TonTxMonitor` and run:
+>
+> ```sh
+> npx next dev
+> ```
+>
+> Make sure TonTxMonitor is running before executing any test scripts that require transaction monitoring. For details, see the documentation in [`TonTxMonitor/README.md`](../TonTxMonitor/README.md).
+
 ```bash
 npx blueprint run
 ```
