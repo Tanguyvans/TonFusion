@@ -6,7 +6,7 @@ export interface MonitorOptions {
   txHash: string;
   queryId?: string;
   amount?: string;
-  sinceTimestamp?: string;
+  sinceTimestamp?: string; //UNIX timestamp for monitoring start
 }
 
 export interface ApiResponse {
