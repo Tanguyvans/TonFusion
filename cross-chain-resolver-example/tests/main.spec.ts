@@ -4,7 +4,7 @@ import {expect, jest} from '@jest/globals'
 import {createServer, CreateServerReturnType} from 'prool'
 import {anvil} from 'prool/instances'
 
-import Sdk from '../local-cross-chain-sdk'
+import Sdk from '@1inch/cross-chain-sdk'
 import {
     computeAddress,
     ContractFactory,
@@ -28,8 +28,8 @@ const {Address} = Sdk
 
 jest.setTimeout(1000 * 60)
 
-const userPk = process.env.PRIVATE_KEY_1 || '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
-const resolverPk = process.env.PRIVATE_KEY_2 || '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a'
+const userPk = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
+const resolverPk = '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a'
 
 // eslint-disable-next-line max-lines-per-function
 describe('Resolving example', () => {
@@ -72,18 +72,29 @@ describe('Resolving example', () => {
 
         srcFactory = new EscrowFactory(src.provider, src.escrowFactory)
         dstFactory = new EscrowFactory(dst.provider, dst.escrowFactory)
-        // User already has WETH from limit order, just approve to LOP
+        // get 1000 USDC for user in SRC chain and approve to LOP
+        await srcChainUser.topUpFromDonor(
+            config.chain.source.tokens.USDC.address,
+            config.chain.source.tokens.USDC.donor,
+            parseUnits('1000', 6)
+        )
         await srcChainUser.approveToken(
-            config.chain.source.tokens.WETH.address,
+            config.chain.source.tokens.USDC.address,
             config.chain.source.limitOrderProtocol,
             MaxUint256
         )
 
-        // Setup resolver contracts (no token top-up needed for BNB)
+        // get 2000 USDC for resolver in DST chain
         srcResolverContract = await Wallet.fromAddress(src.resolver, src.provider)
         dstResolverContract = await Wallet.fromAddress(dst.resolver, dst.provider)
-        // top up contract for gas
-        await dstChainResolver.transfer(dst.resolver, parseEther('0.01'))
+        await dstResolverContract.topUpFromDonor(
+            config.chain.destination.tokens.USDC.address,
+            config.chain.destination.tokens.USDC.donor,
+            parseUnits('2000', 6)
+        )
+        // top up contract for approve
+        await dstChainResolver.transfer(dst.resolver, parseEther('1'))
+        await dstResolverContract.unlimitedApprove(config.chain.destination.tokens.USDC.address, dst.escrowFactory)
 
         srcTimestamp = BigInt((await src.provider.getBlock('latest'))!.timestamp)
     })
@@ -98,8 +109,8 @@ describe('Resolving example', () => {
                 resolver: await srcResolverContract.tokenBalance(srcToken)
             },
             dst: {
-                user: dstToken === 'native' ? await dst.provider.getBalance(dstChainUser.getAddress()) : await dstChainUser.tokenBalance(dstToken),
-                resolver: dstToken === 'native' ? await dst.provider.getBalance(dst.resolver) : await dstResolverContract.tokenBalance(dstToken)
+                user: await dstChainUser.tokenBalance(dstToken),
+                resolver: await dstResolverContract.tokenBalance(dstToken)
             }
         }
     }
@@ -112,10 +123,10 @@ describe('Resolving example', () => {
 
     // eslint-disable-next-line max-lines-per-function
     describe('Fill', () => {
-        it('should swap Sepolia WETH -> BSC BNB. Single fill only', async () => {
+        it('should swap Ethereum USDC -> Bsc USDC. Single fill only', async () => {
             const initialBalances = await getBalances(
-                config.chain.source.tokens.WETH.address,
-                'native'
+                config.chain.source.tokens.USDC.address,
+                config.chain.destination.tokens.USDC.address
             )
 
             // User creates order
@@ -125,10 +136,10 @@ describe('Resolving example', () => {
                 {
                     salt: Sdk.randBigInt(1000n),
                     maker: new Address(await srcChainUser.getAddress()),
-                    makingAmount: parseEther('0.0001'), // Very small: 0.0001 WETH
-                    takingAmount: parseEther('0.0001'), // For 0.0001 BNB
-                    makerAsset: new Address(config.chain.source.tokens.WETH.address),
-                    takerAsset: new Address(config.chain.destination.wrappedNative) // WBNB
+                    makingAmount: parseUnits('100', 6),
+                    takingAmount: parseUnits('99', 6),
+                    makerAsset: new Address(config.chain.source.tokens.USDC.address),
+                    takerAsset: new Address(config.chain.destination.tokens.USDC.address)
                 },
                 {
                     hashLock: Sdk.HashLock.forSingleFill(secret),
@@ -143,8 +154,8 @@ describe('Resolving example', () => {
                     }),
                     srcChainId,
                     dstChainId,
-                    srcSafetyDeposit: parseEther('0.00001'), // Very small safety deposit
-                    dstSafetyDeposit: parseEther('0.00001') // Very small safety deposit
+                    srcSafetyDeposit: parseEther('0.001'),
+                    dstSafetyDeposit: parseEther('0.001')
                 },
                 {
                     auction: new Sdk.AuctionDetails({
@@ -282,8 +293,8 @@ describe('Resolving example', () => {
                     }),
                     srcChainId,
                     dstChainId,
-                    srcSafetyDeposit: parseEther('0.00001'), // Very small safety deposit
-                    dstSafetyDeposit: parseEther('0.00001') // Very small safety deposit
+                    srcSafetyDeposit: parseEther('0.001'),
+                    dstSafetyDeposit: parseEther('0.001')
                 },
                 {
                     auction: new Sdk.AuctionDetails({
@@ -434,8 +445,8 @@ describe('Resolving example', () => {
                     }),
                     srcChainId,
                     dstChainId,
-                    srcSafetyDeposit: parseEther('0.00001'), // Very small safety deposit
-                    dstSafetyDeposit: parseEther('0.00001') // Very small safety deposit
+                    srcSafetyDeposit: parseEther('0.001'),
+                    dstSafetyDeposit: parseEther('0.001')
                 },
                 {
                     auction: new Sdk.AuctionDetails({
@@ -585,8 +596,8 @@ describe('Resolving example', () => {
                     }),
                     srcChainId,
                     dstChainId,
-                    srcSafetyDeposit: parseEther('0.00001'), // Very small safety deposit
-                    dstSafetyDeposit: parseEther('0.00001') // Very small safety deposit
+                    srcSafetyDeposit: parseEther('0.001'),
+                    dstSafetyDeposit: parseEther('0.001')
                 },
                 {
                     auction: new Sdk.AuctionDetails({

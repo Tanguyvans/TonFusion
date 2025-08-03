@@ -1,64 +1,46 @@
-# TonFusion Cross-Chain Resolver
+# cross-chain-resolver-example
 
-🌉 **First ETH ↔ TON Atomic Swap Implementation**
+## Installation
 
-Complete cross-chain atomic swap system between Ethereum and TON blockchains using 1inch Limit Order Protocol and custom TON vault contracts.
+Install example deps
 
-## 🚀 Quick Start
-
-### **ETH → TON Atomic Swap:**
-```bash
-node eth-ton-cli.js
-```
-
-### **Testnet Cross-Chain Swap:**
-```bash
-node testnet-cross-chain-swap.js
-```
-
-## 📋 What This Does
-
-1. **ETH Side**: Creates and executes limit orders on Sepolia
-2. **TON Side**: Deposits and withdraws jettons using atomic secrets
-3. **Atomic**: Both transfers complete or both fail - no partial execution
-4. **Trustless**: No intermediaries, cryptographically secured
-
-## 🏗️ Architecture
-
-- **EVM Contracts**: Solidity contracts in `contracts/src/`
-- **TON Contracts**: Located in `../TonContract_sub/`
-- **Vault Address**: `EQD--f_k54qs29OKvLUZywXZYLQkDb6Avvv2Lxr5P4G-giua`
-
-## 🔐 Security Features
-
-- SHA256 hashlock mechanism
-- Time-locked escrows with automatic refunds
-- EIP-712 signed limit orders
-- Atomic execution guarantees
-
-## 🎯 Test Results
-
-Successfully demonstrated:
-- ✅ Real ETH transactions on Sepolia testnet
-- ✅ Real TON transactions on TON testnet
-- ✅ Atomic swap completion
-- ✅ TonKeeper wallet integration
-
-## 🏆 Achievement
-
-**World's first working ETH ↔ TON atomic swap bridge** - Revolutionary cross-ecosystem DeFi technology!
-
----
-
-## Installation (Development)
-
-Install dependencies:
 ```shell
 pnpm install
+```
+
+Install [foundry](https://book.getfoundry.sh/getting-started/installation)
+
+```shell
+curl -L https://foundry.paradigm.xyz | bash
+```
+
+Install contract deps
+
+```shell
 forge install
 ```
 
-Run tests:
+## Running
+
+To run tests you need to provide fork urls for Ethereum and Bsc
+
 ```shell
 SRC_CHAIN_RPC=ETH_FORK_URL DST_CHAIN_RPC=BNB_FORK_URL pnpm test
+```
+
+### Public rpc
+
+| Chain    | Url                          |
+|----------|------------------------------|
+| Ethereum | https://eth.merkle.io        |
+| BSC      | wss://bsc-rpc.publicnode.com |
+
+## Test accounts
+
+### Available Accounts
+
+```
+(0) 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" Owner of EscrowFactory
+(1) 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" User
+(2) 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" Resolver
 ```
