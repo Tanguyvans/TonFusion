@@ -3,15 +3,15 @@ import { isWithinTimeRange } from './dateTimeUtils';
 import { MONITOR_CONFIG } from '../../../constants/config';
 
 /**
- * 指定された時間範囲内で、op_codeとquery_idが一致する成功したトランザクションを検索する
+ * Find successful transactions matching op_code and query_id within specified time range
  *
- * @param txList - 検索対象のトランザクション配列
- * @param opCode - 検索するオペレーションコード
- * @param sinceTimestamp - 検索開始タイムスタンプ（UNIXタイムスタンプ、秒単位）
- * @param queryId - 検索するquery_id
- * @param requiredExcessOpcodeCount - 必要なオペレーションコードの最小出現回数。
- *                                    この数に達した時点で検索を打ち切り、見つかったトランザクションを返す。
- * @returns 条件に一致するトランザクションの配列（最大でrequiredExcessOpcodeCount件）
+ * @param txList - Array of transactions to search
+ * @param opCode - Operation code to search for
+ * @param sinceTimestamp - Start timestamp (UNIX timestamp in seconds)
+ * @param queryId - Query ID to search for
+ * @param requiredExcessOpcodeCount - Minimum number of required op_code occurrences.
+ *                                   Returns found transactions when this number is reached.
+ * @returns Array of matching transactions (maximum requiredExcessOpcodeCount items)
  */
 export function findOpCodeTxs(
   txList: Transaction[],
@@ -27,10 +27,10 @@ export function findOpCodeTxs(
 
     const txTime = tx.utime || 0;
 
-    // 1. 時間範囲内である
-    // 2. op_codeが一致する
-    // 3. query_idが許容誤差（±1000）以内であること
-    // 4. トランザクションが成功している
+    // 1. Within time range
+    // 2. op_code matches
+    // 3. query_id within tolerance (±1000)
+    // 4. Transaction is successful
     const txQueryId = tx.in_msg?.decoded_body?.query_id?.toString();
     let queryIdMatch = true;
 
@@ -41,7 +41,7 @@ export function findOpCodeTxs(
         const diff = txQid > expectedQid ? txQid - expectedQid : expectedQid - txQid;
         queryIdMatch = diff <= BigInt(MONITOR_CONFIG.MONITORING_QUERY_ID_TOLERANCE);
       } catch (e) {
-        // 数値変換に失敗した場合は厳密な比較にフォールバック
+        // Fallback to strict comparison if numeric conversion fails
         queryIdMatch = txQueryId === queryId;
       }
     }

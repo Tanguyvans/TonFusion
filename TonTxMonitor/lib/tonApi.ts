@@ -1,17 +1,17 @@
 import type { Transaction, Message } from '@/txMonitor/types';
 import { MONITOR_CONFIG } from '../constants/config';
 
-// TON API設定
+// TON API config
 const TON_API_CONFIG = {
-  // 環境変数からBASE_URLを取得（デフォルトはmainnet）
+  // Get BASE_URL from env (default: mainnet)
   get BASE_URL(): string {
     return process.env.NEXT_PUBLIC_TON_API_BASE_URL || 'https://tonapi.io';
   },
-  // APIキー
+  // API key
   get API_KEY(): string {
     return process.env.NEXT_PUBLIC_TON_API_KEY || '';
   },
-  // リクエストタイムアウト（ミリ秒）
+  // Request timeout (ms)
   TIMEOUT_MS: 30000
 };
 
@@ -45,11 +45,11 @@ async function fetchFromTonApi<T>(endpoint: string, params: Record<string, strin
   }
 }
 
-// TON APIのstring型メッセージをMessage型に変換するヘルパー
+// Helper: convert string message to Message type
 function parseMessage(msg: any): Message {
   if (!msg) return {};
   if (typeof msg === 'string') {
-    // 必要に応じてデコード処理を追加
+    // Add decode logic if needed
     return { raw: msg };
   }
   return msg;

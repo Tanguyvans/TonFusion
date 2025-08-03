@@ -19,8 +19,8 @@ export class SwapModeTxMonitor {
   }
 
   /**
-   * トランザクション監視を開始する（非同期）
-   * @param options 監視オプション
+   * Start monitoring transactions (async)
+   * @param options Monitoring options
    */
   async start(options: {
     userAddress: string;
@@ -44,17 +44,17 @@ export class SwapModeTxMonitor {
     this.isMonitoring = true;
     this.prevTxResult = null;
 
-    onLog?.(`\n=== Monitoring started (${this.monitorCount}回) ===`);
+    onLog?.(`\n=== Monitoring started (${this.monitorCount} times) ===`);
     onLog?.(`Base timestamp: ${new Date(sinceTimestamp * 1000).toISOString()}`);
-    onLog?.(`Required ExcessOpcode count: ${this.requiredExcessOpcodeCount}回`);
+    onLog?.(`Required ExcessOpcode count: ${this.requiredExcessOpcodeCount}`);
 
     for (let i = 0; i < this.monitorCount && this.isMonitoring; i++) {
       try {
-        // トランザクションを取得
+        // Get transactions
         const txList = await getTransactions(userAddress);
-        // op_code/query_idをVerification
+        // Verify op_code and query_id
         const verification = this.verifyOpCode(txList, MONITOR_CONFIG.MONITORING_OP_CODE, sinceTimestamp, queryId, onLog);
-        // 結果を判定
+        // Judge result
         let txResult: TxMonitorResult = 'TX_RESULT_ERROR';
         let opCodeSuccess: boolean | null = null;
         if (verification) {
@@ -62,7 +62,7 @@ export class SwapModeTxMonitor {
           opCodeSuccess = verification.status === 'TX_RESULT_FULLY_SUCCESS' ? true : 
                          verification.status === 'TX_RESULT_ERROR' ? null : false;
         }
-        // 結果が変化した場合のみ通知
+        // Notify only if result changes
         if (i === 0 || txResult !== this.prevTxResult) {
           onLog?.(`=== TxResult: ${txResult} ===`);
           if (verification) {
@@ -70,13 +70,13 @@ export class SwapModeTxMonitor {
           }
           this.prevTxResult = txResult;
         }
-        // コールバックを呼び出す
+        // Call callback
         onUpdate?.({
           txResult,
           opCodeSuccess,
           txList: verification?.found ? txList : []
         });
-        // 完全成功の場合は監視を終了
+        // Stop monitoring if fully successful
         if (txResult === 'TX_RESULT_FULLY_SUCCESS') {
           onLog?.('All required transactions detected.');
           this.stop();
@@ -145,14 +145,13 @@ export class SwapModeTxMonitor {
 }
 
 /**
- * トランザクションを監視する関数
- * @param userAddress ユーザーのウォレットアドレス
- * @param queryId クエリID
- * @param requiredExcessOpcodeCount 必要なExcessOpcodeの数
- * @param sinceTimestamp 監視開始基準時刻
- * @param totalAmount TON Input トータル金額
- * @param txHashbyTonConnect TonConnectで送信したトランザクションハッシュ
-
+ * Monitor transactions
+ * @param userAddress User wallet address
+ * @param queryId Query ID
+ * @param requiredExcessOpcodeCount Required ExcessOpcode count
+ * @param sinceTimestamp Monitoring start time
+ * @param totalAmount Total TON amount
+ * @param txHashbyTonConnect Transaction hash sent by TonConnect
  */
 export async function getTxMonitorResult(
   userAddress: string,

@@ -1,10 +1,10 @@
 /**
- * 任意のバリデーション関数を使って、ユーザーが正しい値を入力するまで繰り返し質問する共通関数
- * @param readline readline-sync互換のインスタンス
- * @param prompt プロンプト文字列
- * @param validate 入力値をバリデーションする関数（trueで有効）
- * @param errorMsg バリデーション失敗時のエラーメッセージ
- * @returns バリデーションを通過した値
+ * Repeatedly ask user until valid input is provided
+ * @param readline readline-sync compatible instance
+ * @param prompt Prompt string
+ * @param validate Validation function (returns true if valid)
+ * @param errorMsg Error message for validation failure
+ * @returns Validated value
  */
 export function askWithValidation<T = string>(
   readline: { question: (query: string) => string },

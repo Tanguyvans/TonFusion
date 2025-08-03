@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getTxMonitorResult } from '../txMonitor/main';
 
-export const dynamic = 'force-dynamic'; // Force dynamic rendering
+export const dynamic = 'force-dynamic'; // Always use dynamic rendering
 
 export async function POST(request: Request) {
   try {
     const params = await request.json();
     
-    // Validate required parameters
+    // Check required parameters
     if (!params.userAddress || !params.txHashbyTonConnect) {
       return NextResponse.json(
         { success: false, error: 'Missing required parameters' },

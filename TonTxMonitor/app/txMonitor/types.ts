@@ -11,7 +11,7 @@ export interface Message {
   [key: string]: any;
 }
 
-// APIリクエスト型定義
+// API request type
 export type TxMonitorRequest = {
   userAddress: string;
   txHashbyTonConnect: string;
@@ -19,10 +19,9 @@ export type TxMonitorRequest = {
   requiredExcessOpcodeCount?: number; 
   sinceTimestamp?: number; //UNIX timestamp in seconds
   totalAmount?: string;
-
 };
 
-// トランザクションの型定義
+// Transaction type
 export interface Transaction {
   hash?: string;
   utime?: number;

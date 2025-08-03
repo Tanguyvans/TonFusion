@@ -1,10 +1,10 @@
+// Transaction monitoring parameters
 interface TxMonitorParams {
   userAddress: string;
   queryId: string;
   requiredExcessOpcodeCount: number;
   txHash: string;
   totalAmount: string;
-
 }
 
 export async function callTxMonitor(params: TxMonitorParams) {

@@ -1,22 +1,22 @@
 import { Address } from '@ton/core';
 
 /**
- * TONアドレスを16進数文字列に変換する
- * 例: "kQCSnKC--Igca13vrtnVI-I0FYJxAvcJJNZDxZfRAVGeWJlq" -> "0:929ca0bef8881c6b5defaed9d523e23415827102f70924d643c597d101519e58"
- * @throws 無効なアドレスの場合にスローされる
+ * Convert TON address to a hexadecimal string
+ * Example: "kQCSnKC--Igca13vrtnVI-I0FYJxAvcJJNZDxZfRAVGeWJlq" -> "0:929ca0bef8881c6b5defaed9d523e23415827102f70924d643c597d101519e58"
+ * @throws Throws if the address is invalid
  */
 export function addressToHexString(address: string | { address: string }): string {
-  // オブジェクト形式の場合は address プロパティを使用
+  // Use address property if input is object
   const addressStr = typeof address === 'string' ? address : address.address;
   
   if (!addressStr) {
     throw new Error('Empty address provided');
   }
   
-  // アドレスをパース
+  // Parse address
   const addr = Address.parse(addressStr);
   
-  // 16進数形式に変換
-  const hex = addr.toRawString(); // 16進数文字列を取得
-  return `${hex.toLowerCase()}`; // 小文字に変換してリターン
+  // Convert to hex string
+  const hex = addr.toRawString(); // Get hex string
+  return `${hex.toLowerCase()}`; // Return as lowercase
 }
