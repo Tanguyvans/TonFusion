@@ -1,21 +1,8 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
 import chalk from 'chalk';
 import axios, { AxiosError } from 'axios';
 import type { MonitorOptions, ApiResponse } from './types.ts';
-
-const program = new Command();
-
-// Command line options
-program
-  .option('--env <env>', 'Environment (local or prod)', 'local')
-  .requiredOption('--address <address>', 'Wallet address')
-  .option('--queryId <queryId>', 'Query ID', '0')
-  .option('--amount <amount>', 'Amount', '1')
-  .option('--sinceTimestamp <sinceTimestamp>', 'UNIX timestamp for monitoring start (default: now)', '')
-  .parse(process.argv);
-
-const options = program.opts<MonitorOptions>();
+import { MONITOR_CONFIG } from '../constants/config';
 
 // API endpoint configuration
 const API_ENDPOINTS = {
@@ -23,7 +10,7 @@ const API_ENDPOINTS = {
   prod: 'https://your-production-url.com/api' // Update with your production URL
 };
 
-async function monitorTransaction() {
+export async function monitorTransaction(options: MonitorOptions) {
   const endpoint = API_ENDPOINTS[options.env];
   const requestData = {
     userAddress: options.address,
@@ -39,7 +26,7 @@ async function monitorTransaction() {
   try {
     const response = await axios.post<ApiResponse>(endpoint, requestData, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 30000 // 30 seconds timeout
+      timeout: MONITOR_CONFIG.MONITORING_COUNT * MONITOR_CONFIG.MONITORING_INTERVAL_MS // from config
     });
 
     if (response.data.success) {
@@ -64,5 +51,3 @@ async function monitorTransaction() {
   }
 }
 
-// Execute the monitor
-monitorTransaction();
