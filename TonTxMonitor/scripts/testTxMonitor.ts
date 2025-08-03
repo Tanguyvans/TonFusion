@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import chalk from 'chalk';
 import axios, { AxiosError } from 'axios';
 import type { MonitorOptions, ApiResponse } from './types.ts';
@@ -30,9 +29,9 @@ export async function monitorTransaction(options: MonitorOptions) {
     });
 
     if (response.data.success) {
-      console.log(chalk.green('✅ Success:'), response.data.data);
+      console.log(chalk.green('✅ TxMonitor Success:'), response.data.data);
     } else {
-      console.error(chalk.red('❌ Error:'), response.data.error || 'Unknown error');
+      console.error(chalk.red('❌ TxMonitor Error:'), response.data.error || 'Unknown error');
       process.exit(1);
     }
   } catch (error) {

@@ -302,7 +302,7 @@ if (op == op::withdraw_jetton()) {
 ### Time Locks Design 
 **Time Locks Variable Summary Table:**
 
-| Function                      | Recommended Variable Name        | Description                                                        | Who Can Operate           | Secret Required? | Status Transition         |
+| Function                      | Variable Name.                   | Description                                                        | Who Can Operate           | Secret Required? | Status Transition         |
 |-------------------------------|----------------------------------|--------------------------------------------------------------------|---------------------------|------------------|--------------------------|
 | Standard withdrawal deadline   | `withdrawal_deadline`            | Last moment when standard withdraw is allowed                      | Intended participant      | Yes              | completed (withdrawn)     |
 | Public withdrawal deadline     | `public_withdrawal_deadline`     | Last moment when public withdraw is allowed                        | Anyone                   | Yes (must know)  | completed (withdrawn)     |
