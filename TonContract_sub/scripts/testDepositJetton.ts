@@ -4,6 +4,7 @@ import { getJettonWalletAddr } from '../utils/Common';
 import { Op } from '../utils/Constants';
 import { getTonClient } from '../utils/TonClient';
 import { monitorTransaction } from '../../TonTxMonitor/scripts/testTxMonitor';
+import { MONITOR_CONFIG } from '../../TonTxMonitor/constants/config';
 
 
 export async function run(provider: NetworkProvider) {
@@ -173,7 +174,19 @@ export async function run(provider: NetworkProvider) {
         console.log(`   - The tenth value is ${publicCancellationDeadline} (public cancellation deadline as UNIX timestamp)`);
         console.log('   - The eleventh value is 0 (status: 0=init, 1=completed, 2=refunded)');
 
-        // --- TonTxMonitor呼び出し ---
+        // --- Calling TonTxMonitor ---
+        console.log('\n[TxMonitor] Tracking your transaction on-chain.');
+        console.log(`[TxMonitor] Updating status every ${MONITOR_CONFIG.MONITORING_INTERVAL_MS / 1000} seconds, up to ${MONITOR_CONFIG.MONITORING_COUNT * MONITOR_CONFIG.MONITORING_INTERVAL_MS / 1000} seconds.`);
+        console.log('[TxMonitor] Typically completes in about 30 seconds. Please wait...');
+        // --- Spinner Animation ---
+        const spinnerFrames = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+        let spinnerIndex = 0;
+        process.stdout.write(' ');
+        const spinner = setInterval(() => {
+            process.stdout.write('\r' + spinnerFrames[spinnerIndex] + ' ');
+            spinnerIndex = (spinnerIndex + 1) % spinnerFrames.length;
+        }, 120);
+        // --- End Spinner Animation ---
         try {
             const monitorOptions = {
                 env: (provider.network() === 'custom' ? 'prod' : 'local') as 'prod' | 'local',
@@ -184,10 +197,12 @@ export async function run(provider: NetworkProvider) {
                 txHash: "txHashPlaceholder"
             };
             await monitorTransaction(monitorOptions);
+            clearInterval(spinner);
         } catch (monitorError) {
+            clearInterval(spinner);
             console.error('Error in monitorTransaction:', monitorError);
         }
-        // --- TonTxMonitor呼び出しここまで ---
+        // --- End TonTxMonitor Calling---
 
     } catch (error) {
         console.error('\nError sending Jetton transfer:');
