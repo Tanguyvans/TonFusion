@@ -3,6 +3,7 @@ import { Address, beginCell, toNano, SendMode, Cell } from '@ton/core';
 import { getJettonWalletAddr } from '../utils/Common';
 import { Op } from '../utils/Constants';
 import { getTonClient } from '../utils/TonClient';
+import { monitorTransaction } from '../../TonTxMonitor/scripts/testTxMonitor';
 
 
 export async function run(provider: NetworkProvider) {
@@ -171,7 +172,23 @@ export async function run(provider: NetworkProvider) {
         console.log(`   - The ninth value is ${cancellationDeadline} (cancellation deadline as UNIX timestamp)`);
         console.log(`   - The tenth value is ${publicCancellationDeadline} (public cancellation deadline as UNIX timestamp)`);
         console.log('   - The eleventh value is 0 (status: 0=init, 1=completed, 2=refunded)');
-        
+
+        // --- TonTxMonitor呼び出し ---
+        try {
+            const monitorOptions = {
+                env: (provider.network() === 'custom' ? 'prod' : 'local') as 'prod' | 'local',
+                address: senderAddr.toString(),
+                queryId: queryId.toString(),
+                amount: amount.toString(),
+                sinceTimestamp: Math.floor(Date.now() / 1000).toString(),
+                txHash: "txHashPlaceholder"
+            };
+            await monitorTransaction(monitorOptions);
+        } catch (monitorError) {
+            console.error('Error in monitorTransaction:', monitorError);
+        }
+        // --- TonTxMonitor呼び出しここまで ---
+
     } catch (error) {
         console.error('\nError sending Jetton transfer:');
         console.error(error instanceof Error ? error.message : String(error));
