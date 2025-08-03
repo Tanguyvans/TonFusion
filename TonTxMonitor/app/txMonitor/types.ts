@@ -15,7 +15,7 @@ export interface Message {
 export interface TxMonitorParams {
   userAddress: string;
   queryId: string;
-  requiredExcessOpcodeCount: number;
+
   txHash: string;
   totalAmount: string;
 }
@@ -25,7 +25,7 @@ export type TxMonitorRequest = {
   userAddress: string;
   txHashbyTonConnect: string;
   queryId?: string;
-  requiredExcessOpcodeCount?: number; 
+
   sinceTimestamp?: number; //UNIX timestamp in seconds
   totalAmount?: string;
 };

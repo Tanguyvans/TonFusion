@@ -8,14 +8,13 @@ import { MONITOR_CONFIG } from '../../constants/config';
 export class SwapModeTxMonitor {
   private monitorCount: number;
   private monitorIntervalMs: number;
-  private requiredExcessOpcodeCount: number;
+
   private isMonitoring = false;
   private prevTxResult: TxMonitorResult | null = null;
 
-  constructor(requiredExcessOpcodeCount: number) {
+  constructor() {
     this.monitorCount = MONITOR_CONFIG.MONITORING_COUNT;
     this.monitorIntervalMs = MONITOR_CONFIG.MONITORING_INTERVAL_MS;
-    this.requiredExcessOpcodeCount = requiredExcessOpcodeCount;
   }
 
   /**
@@ -46,7 +45,7 @@ export class SwapModeTxMonitor {
 
     onLog?.(`\n=== Monitoring started (${this.monitorCount} times) ===`);
     onLog?.(`Base timestamp: ${new Date(sinceTimestamp * 1000).toISOString()}`);
-    onLog?.(`Required ExcessOpcode count: ${this.requiredExcessOpcodeCount}`);
+    onLog?.(`Required ExcessOpcode count: 1`);
 
     for (let i = 0; i < this.monitorCount && this.isMonitoring; i++) {
       try {
@@ -109,11 +108,11 @@ export class SwapModeTxMonitor {
     onLog?: (message: string) => void
   ): OpCodeVerificationResult {
     try {
-      const txs = findOpCodeTxs(txList, opCode, sinceTimestamp, queryId, this.requiredExcessOpcodeCount);
+      const txs = findOpCodeTxs(txList, opCode, sinceTimestamp, queryId);
       let status: TxMonitorResult;
       if (txs.length === 0) {
         status = 'TX_RESULT_FAILED';
-      } else if (txs.length >= this.requiredExcessOpcodeCount) {
+      } else if (txs.length >= 1) {
         status = 'TX_RESULT_FULLY_SUCCESS';
       } else {
         status = 'TX_RESULT_PARTIAL_SUCCESS';
@@ -134,12 +133,12 @@ export class SwapModeTxMonitor {
       }
       return {
         found: txs.length,
-        required: this.requiredExcessOpcodeCount,
+        required: 1,
         status
       };
     } catch (e) {
       onLog?.(`[verifyOpCode] Error: ${e}`);
-      return { found: 0, required: this.requiredExcessOpcodeCount, status: 'TX_RESULT_ERROR' };
+      return { found: 0, required: 1, status: 'TX_RESULT_ERROR' };
     }
   }
 }
@@ -148,7 +147,7 @@ export class SwapModeTxMonitor {
  * Monitor transactions
  * @param userAddress User wallet address
  * @param queryId Query ID
- * @param requiredExcessOpcodeCount Required ExcessOpcode count
+
  * @param sinceTimestamp Monitoring start time
  * @param totalAmount Total TON amount
  * @param txHashbyTonConnect Transaction hash sent by TonConnect
@@ -156,7 +155,7 @@ export class SwapModeTxMonitor {
 export async function getTxMonitorResult(
   userAddress: string,
   queryId: string,
-  requiredExcessOpcodeCount: number = 1,
+
   sinceTimestamp: Date = new Date(),
   totalAmount: string,
   txHashbyTonConnect: string,
@@ -170,7 +169,7 @@ export async function getTxMonitorResult(
   try {
     let txMonitorResult: TxMonitorResult;
 
-    const monitor = new SwapModeTxMonitor(requiredExcessOpcodeCount);
+    const monitor = new SwapModeTxMonitor();
     txMonitorResult = await monitor.start({
       userAddress,
       queryId,
@@ -184,7 +183,7 @@ export async function getTxMonitorResult(
       `QueryId: ${queryId}\n` +
       `User: ${userAddress}\n` +
       `TotalAmount(TON): ${totalAmount}\n` +
-      `RequiredExcessOpcodeCount: ${requiredExcessOpcodeCount}\n` +
+      `RequiredExcessOpcodeCount: 1\n` +
       `SinceTimestamp: ${sinceTimestamp}\n` +
       `TxHashbyTonConnect: ${txHashbyTonConnect}\n` +
       `Result: ${txMonitorResult}\n`

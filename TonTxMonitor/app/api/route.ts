@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     console.log('Start monitoring:', {
       userAddress: params.userAddress,
       queryId: params.queryId || '0',
-      requiredExcessOpcodeCount: params.requiredExcessOpcodeCount || 1,
+
       totalAmount: params.totalAmount || '0',
       txHashbyTonConnect: params.txHashbyTonConnect,
 
@@ -27,11 +27,9 @@ export async function POST(request: Request) {
     const result = await getTxMonitorResult(
       params.userAddress,
       params.queryId || '0',
-      params.requiredExcessOpcodeCount || 1,
       new Date((params.sinceTimestamp || Date.now()) * 1000),
       params.totalAmount || '0',
       params.txHashbyTonConnect,
-
     );
 
     console.log('Monitoring completed:', result);

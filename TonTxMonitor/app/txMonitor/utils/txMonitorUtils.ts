@@ -9,21 +9,18 @@ import { MONITOR_CONFIG } from '../../../constants/config';
  * @param opCode - Operation code to search for
  * @param sinceTimestamp - Start timestamp (UNIX timestamp in seconds)
  * @param queryId - Query ID to search for
- * @param requiredExcessOpcodeCount - Minimum number of required op_code occurrences.
- *                                   Returns found transactions when this number is reached.
- * @returns Array of matching transactions (maximum requiredExcessOpcodeCount items)
+ * @returns Array of matching transactions (最大1件のみ返す)
  */
 export function findOpCodeTxs(
   txList: Transaction[],
   opCode: string,
   sinceTimestamp: number,
-  queryId: string,
-  requiredExcessOpcodeCount: number
+  queryId: string
 ): Transaction[] {
   const result: Transaction[] = [];
 
   for (const tx of txList) {
-    if (result.length >= requiredExcessOpcodeCount) break;
+    if (result.length >= 1) break;
 
     const txTime = tx.utime || 0;
 

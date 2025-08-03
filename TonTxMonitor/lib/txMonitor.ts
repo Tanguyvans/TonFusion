@@ -8,7 +8,6 @@ export async function callTxMonitor(params: TxMonitorParams) {
       body: JSON.stringify({
         userAddress: params.userAddress,
         queryId: params.queryId,
-        requiredExcessOpcodeCount: params.requiredExcessOpcodeCount,
         sinceTimestamp: new Date().toISOString(),
         totalAmount: params.totalAmount,
         txHashbyTonConnect: params.txHash,
