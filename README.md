@@ -1,4 +1,4 @@
-# TonFusion: TON-ETH Cross-Chain Bridge
+# TonFusion: Extend Fusion+ to TON
 
 A hybrid blockchain project that enables atomic cross-chain swaps between TON blockchain and EVM chains using 1inch's cross-chain swap infrastructure and Hash Time-Locked Contracts (HTLCs).
 
