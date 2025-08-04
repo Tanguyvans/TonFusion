@@ -66,7 +66,7 @@ User (TON) ←→ Resolver ←→ User (ETH)
 ### Components
 
 1. **Cross-chain Resolver** (`cross-chain-resolver-example/`): EVM implementation using 1inch's protocol
-2. **TON Escrow Contract** (`TonContract_sub/`): TON blockchain smart contracts (Blueprint framework)
+2. **TON Escrow Contract** (`TonContract_main/`): TON blockchain smart contracts (Blueprint framework)
 
 ### Current EVM Implementation
 
